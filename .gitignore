@@ -1,0 +1,14 @@
+
+# CMake build directories
+/build/
+/cmake-build-*/
+
+# macOS
+.DS_Store
+
+# Local CMake settings
+CMakeUserPresets.json
+
+# Visual Studio
+*.user
+*.suo
