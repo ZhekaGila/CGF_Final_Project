@@ -12,3 +12,6 @@ CMakeUserPresets.json
 # Visual Studio
 *.user
 *.suo
+
+/vcpkg_installed/
+/build/
