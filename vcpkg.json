@@ -1,8 +1,9 @@
 {
-    "name": "concert-stage",
-    "version-string": "1.0.0",
-    "dependencies": [
-        "glfw3",
-        "glm"
-    ]
+  "name": "concert-stage",
+  "version-string": "1.0.0",
+  "dependencies": [
+    "glfw3",
+    "glm"
+  ],
+  "builtin-baseline": "9a5dfef5d1a0438a7d24856a85bd60f309d355e9"
 }
