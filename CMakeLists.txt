@@ -24,6 +24,7 @@ target_include_directories(glad PUBLIC
 # Main application
 add_executable(ConcertStage
     src/main.cpp
+    src/Camera.cpp
 )
 
 target_include_directories(ConcertStage PRIVATE
