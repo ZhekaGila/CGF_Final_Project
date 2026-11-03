@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.20)
+cmake_minimum_required(VERSION 3.21)
 
 project(ConcertStage LANGUAGES C CXX)
 
@@ -10,7 +10,33 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # Find required libraries
 find_package(glfw3 3.5 REQUIRED)
 find_package(glm CONFIG REQUIRED)
-find_package(OpenGL REQUIRED)
+# Find OpenGL
+if(APPLE)
+
+    # Force CMake to use Apple's native OpenGL.framework
+    # instead of Homebrew Mesa or other Unix-style libraries.
+
+    set(_SAVED_FIND_FRAMEWORK "${CMAKE_FIND_FRAMEWORK}")
+
+    set(CMAKE_FIND_FRAMEWORK ONLY)
+
+    find_package(OpenGL REQUIRED)
+
+    # Restore previous framework search setting
+    if(_SAVED_FIND_FRAMEWORK STREQUAL "")
+        unset(CMAKE_FIND_FRAMEWORK)
+    else()
+        set(CMAKE_FIND_FRAMEWORK "${_SAVED_FIND_FRAMEWORK}")
+    endif()
+
+    unset(_SAVED_FIND_FRAMEWORK)
+
+else()
+
+    # Windows and other platforms
+    find_package(OpenGL REQUIRED)
+
+endif()
 
 # GLAD library
 add_library(glad STATIC
