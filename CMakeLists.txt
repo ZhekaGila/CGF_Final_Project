@@ -1,3 +1,4 @@
+
 cmake_minimum_required(VERSION 3.21)
 
 project(ConcertStage LANGUAGES C CXX)
@@ -10,19 +11,15 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # Find required libraries
 find_package(glfw3 3.5 REQUIRED)
 find_package(glm CONFIG REQUIRED)
+
 # Find OpenGL
 if(APPLE)
-
-    # Force CMake to use Apple's native OpenGL.framework
-    # instead of Homebrew Mesa or other Unix-style libraries.
-
+    # Use Apple's native OpenGL.framework
     set(_SAVED_FIND_FRAMEWORK "${CMAKE_FIND_FRAMEWORK}")
-
     set(CMAKE_FIND_FRAMEWORK ONLY)
 
     find_package(OpenGL REQUIRED)
 
-    # Restore previous framework search setting
     if(_SAVED_FIND_FRAMEWORK STREQUAL "")
         unset(CMAKE_FIND_FRAMEWORK)
     else()
@@ -30,12 +27,8 @@ if(APPLE)
     endif()
 
     unset(_SAVED_FIND_FRAMEWORK)
-
 else()
-
-    # Windows and other platforms
     find_package(OpenGL REQUIRED)
-
 endif()
 
 # GLAD library
@@ -45,6 +38,20 @@ add_library(glad STATIC
 
 target_include_directories(glad PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/external/glad/include
+)
+
+# Procedural stage geometry library
+add_library(stage_geometry STATIC
+    src/geometry/Primitives.cpp
+    src/geometry/StageGeometry.cpp
+)
+
+target_include_directories(stage_geometry PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+
+target_link_libraries(stage_geometry PUBLIC
+    glm::glm
 )
 
 # Main application
@@ -59,7 +66,7 @@ target_include_directories(ConcertStage PRIVATE
 # Link libraries
 target_link_libraries(ConcertStage PRIVATE
     glfw
-    glm::glm
     glad
     OpenGL::GL
+    stage_geometry
 )
