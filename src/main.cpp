@@ -360,6 +360,13 @@ int main()
 
     GLint cameraPosLocation = glGetUniformLocation(shaderProgram, "uCameraPos"); 
 
+
+    GLint lightPosLocation = glGetUniformLocation(shaderProgram, "uLightPos");
+    GLint lightDirLocation = glGetUniformLocation(shaderProgram, "uLightDir");
+    GLint lightColorLocation = glGetUniformLocation(shaderProgram, "uLightColor");
+    GLint cutOffLocation = glGetUniformLocation(shaderProgram, "uCutOff");
+    GLint outerCutoffLocation = glGetUniformLocation(shaderProgram, "uOuterCutOff");
+
     // --------------------------------------------------------
     // 5. CREATE STAGE GEOMETRY
     // --------------------------------------------------------
@@ -447,6 +454,38 @@ int main()
                 cameraPosLocation,
                 1,
                 glm::value_ptr(cameraPosition)
+            );
+
+            glm::vec3 lightPos(0.0f, 8.0f, 3.0f);
+            glm::vec3 lightDirection(0.0f, -1.0f, 0.0f);
+            glm::vec3 lightColor(1.0f, 1.0f, 1.0f);
+
+            glUniform3fv(
+                lightPosLocation,
+                1,
+                glm::value_ptr(lightPos)
+            );
+
+            glUniform3fv(
+                lightDirLocation,
+                1,
+                glm::value_ptr(lightDirection)
+            );
+
+            glUniform3fv(
+                lightColorLocation,
+                1,
+                glm::value_ptr(lightColor)
+            );
+
+            glUniform1f(
+                cutOffLocation,
+                glm::cos(glm::radians(20.0f))
+            );
+
+            glUniform1f(
+                outerCutoffLocation,
+                glm::cos(glm::radians(30.0f))
             );
 
             glUniformMatrix4fv(
