@@ -143,6 +143,9 @@ struct GpuMesh
     GLsizei indexCount = 0;
 
     glm::mat4 model = glm::mat4(1.0f);
+
+    std::string name;
+    glm::mat4 originalModel = glm::mat4(1.0f);
 };
 
 
@@ -153,6 +156,9 @@ struct GpuMesh
 GpuMesh uploadMesh(const cgf::ScenePart& part)
 {
     GpuMesh gpuMesh;
+
+    gpuMesh.name = part.name;
+    gpuMesh.originalModel = part.transform;
 
     gpuMesh.model = part.transform;
 
