@@ -9,6 +9,7 @@ in vec3 vWorldPos;
 out vec4 FragColor;
 
 uniform vec3 uCameraPos;
+uniform vec3 uEmissionColor;
 
 struct SpotLight
 {
@@ -85,6 +86,8 @@ void main()
             viewDir
         );
     }
+
+    result += uEmissionColor;
 
     FragColor = vec4(result, 1.0);
 }

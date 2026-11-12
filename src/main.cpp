@@ -729,6 +729,11 @@ int main()
 
             glUseProgram(shaderProgram);
 
+            GLint emissionLocation = glGetUniformLocation(
+                shaderProgram,
+                "uEmissionColor"
+            );
+
             glUniform3fv(
                 cameraPosLocation,
                 1,
@@ -811,6 +816,29 @@ int main()
                     1,
                     GL_FALSE,
                     glm::value_ptr(mesh.model)
+                );
+
+
+                glm::vec3 emissionColor(0.0f);
+
+                int bulbNumbers[5] = {1, 2, 4, 5, 3};
+
+                for (int i = 0; i < 5; i++)
+                {
+                    std::string bulbName =
+                        "Spotlight Bulb " + std::to_string(bulbNumbers[i]);
+
+                    if (mesh.name == bulbName)
+                    {
+                        emissionColor = lights[i].color * 1.5f;
+                        break;
+                    }
+                }
+
+                glUniform3fv(
+                    emissionLocation,
+                    1,
+                    glm::value_ptr(emissionColor)
                 );
 
                 glBindVertexArray(mesh.VAO);
