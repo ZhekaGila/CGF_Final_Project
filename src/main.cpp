@@ -16,6 +16,7 @@
 #include <fstream>
 #include <sstream>
 #include <string>
+#include <cmath>
 
 // ============================================================
 // SHADERS
@@ -446,6 +447,21 @@ int main()
 
     while (!glfwWindowShouldClose(window))
     {
+
+        float time = static_cast<float>(glfwGetTime());
+
+        for (int i = 0; i < 4; i++)
+        {
+            float phase = static_cast<float>(i) * 1.57f;
+
+            float x = std::sin(time * 0.7f + phase) * 0.45f;
+            float z = std::cos(time * 0.5f + phase) * 0.30f;
+
+            lights[i].direction = glm::normalize(
+                glm::vec3(x, -1.0f, z)
+            );
+        }
+
         int width = 0;
         int height = 0;
 
