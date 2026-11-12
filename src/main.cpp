@@ -358,6 +358,8 @@ int main()
     GLint projectionLocation =
         glGetUniformLocation(shaderProgram, "uProjection");
 
+    GLint cameraPosLocation = glGetUniformLocation(shaderProgram, "uCameraPos"); 
+
     // --------------------------------------------------------
     // 5. CREATE STAGE GEOMETRY
     // --------------------------------------------------------
@@ -440,6 +442,12 @@ int main()
 
             // Activate shader
             glUseProgram(shaderProgram);
+
+            glUniform3fv(
+                cameraPosLocation,
+                1,
+                glm::value_ptr(cameraPosition)
+            );
 
             glUniformMatrix4fv(
                 viewLocation,
