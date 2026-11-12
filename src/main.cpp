@@ -1,4 +1,3 @@
-
 #include <glad/glad.h>
 
 #define GLFW_INCLUDE_NONE
@@ -264,6 +263,13 @@ void deleteGpuMeshes(std::vector<GpuMesh>& meshes)
 // MAIN
 // ============================================================
 
+struct SpotLight
+{
+    glm::vec3 position;
+    glm::vec3 direction;
+    glm::vec3 color;
+};
+
 int main()
 {
     // --------------------------------------------------------
@@ -360,13 +366,6 @@ int main()
 
     GLint cameraPosLocation = glGetUniformLocation(shaderProgram, "uCameraPos"); 
 
-
-    GLint lightPosLocation = glGetUniformLocation(shaderProgram, "uLightPos");
-    GLint lightDirLocation = glGetUniformLocation(shaderProgram, "uLightDir");
-    GLint lightColorLocation = glGetUniformLocation(shaderProgram, "uLightColor");
-    GLint cutOffLocation = glGetUniformLocation(shaderProgram, "uCutOff");
-    GLint outerCutoffLocation = glGetUniformLocation(shaderProgram, "uOuterCutOff");
-
     // --------------------------------------------------------
     // 5. CREATE STAGE GEOMETRY
     // --------------------------------------------------------
@@ -415,6 +414,32 @@ int main()
         glm::vec3(0.0f, 1.0f, 0.0f)
     );
 
+
+    SpotLight lights[4] =
+    {
+        {
+            glm::vec3(-4.0f, 8.0f, 2.0f),
+            glm::vec3(0.0f, -1.0f, 0.0f),
+            glm::vec3(1.0f, 0.1f, 0.1f)
+        },
+        {
+            glm::vec3(-1.5f, 8.0f, 2.0f),
+            glm::vec3(0.0f, -1.0f, 0.0f),
+            glm::vec3(0.1f, 0.3f, 1.0f)
+        },
+        {
+            glm::vec3(1.5f, 8.0f, 2.0f),
+            glm::vec3(0.0f, -1.0f, 0.0f),
+            glm::vec3(0.1f, 1.0f, 0.2f)
+        },
+        {
+            glm::vec3(4.0f, 8.0f, 2.0f),
+            glm::vec3(0.0f, -1.0f, 0.0f),
+            glm::vec3(0.8f, 0.1f, 1.0f)
+        }
+    };
+
+
     // --------------------------------------------------------
     // 8. RENDERING LOOP
     // --------------------------------------------------------
@@ -430,7 +455,6 @@ int main()
         {
             glViewport(0, 0, width, height);
 
-            // Clear screen and depth buffer
             glClearColor(0.025f, 0.025f, 0.08f, 1.0f);
 
             glClear(
@@ -438,7 +462,6 @@ int main()
                 GL_DEPTH_BUFFER_BIT
             );
 
-            // Perspective projection
             glm::mat4 projection = glm::perspective(
                 glm::radians(45.0f),
                 static_cast<float>(width) /
@@ -447,7 +470,6 @@ int main()
                 100.0f
             );
 
-            // Activate shader
             glUseProgram(shaderProgram);
 
             glUniform3fv(
@@ -456,37 +478,55 @@ int main()
                 glm::value_ptr(cameraPosition)
             );
 
-            glm::vec3 lightPos(0.0f, 8.0f, 3.0f);
-            glm::vec3 lightDirection(0.0f, -1.0f, 0.0f);
-            glm::vec3 lightColor(1.0f, 1.0f, 1.0f);
+            
+            for (int i = 0; i < 4; i++)
+            {
+                std::string prefix =
+                    "uLights[" + std::to_string(i) + "].";
 
-            glUniform3fv(
-                lightPosLocation,
-                1,
-                glm::value_ptr(lightPos)
-            );
+                glUniform3fv(
+                    glGetUniformLocation(
+                        shaderProgram,
+                        (prefix + "position").c_str()
+                    ),
+                    1,
+                    glm::value_ptr(lights[i].position)
+                );
 
-            glUniform3fv(
-                lightDirLocation,
-                1,
-                glm::value_ptr(lightDirection)
-            );
+                glUniform3fv(
+                    glGetUniformLocation(
+                        shaderProgram,
+                        (prefix + "direction").c_str()
+                    ),
+                    1,
+                    glm::value_ptr(lights[i].direction)
+                );
 
-            glUniform3fv(
-                lightColorLocation,
-                1,
-                glm::value_ptr(lightColor)
-            );
+                glUniform3fv(
+                    glGetUniformLocation(
+                        shaderProgram,
+                        (prefix + "color").c_str()
+                    ),
+                    1,
+                    glm::value_ptr(lights[i].color)
+                );
 
-            glUniform1f(
-                cutOffLocation,
-                glm::cos(glm::radians(20.0f))
-            );
+                glUniform1f(
+                    glGetUniformLocation(
+                        shaderProgram,
+                        (prefix + "cutOff").c_str()
+                    ),
+                    glm::cos(glm::radians(25.0f))
+                );
 
-            glUniform1f(
-                outerCutoffLocation,
-                glm::cos(glm::radians(30.0f))
-            );
+                glUniform1f(
+                    glGetUniformLocation(
+                        shaderProgram,
+                        (prefix + "outerCutOff").c_str()
+                    ),
+                    glm::cos(glm::radians(35.0f))
+                );
+            }
 
             glUniformMatrix4fv(
                 viewLocation,
@@ -502,7 +542,6 @@ int main()
                 glm::value_ptr(projection)
             );
 
-            // Draw all scene objects
             for (const GpuMesh& mesh : gpuMeshes)
             {
                 glUniformMatrix4fv(

@@ -1,5 +1,7 @@
 #version 330 core
 
+#define NUM_LIGHTS 4
+
 in vec3 vColor;
 in vec3 vNormal;
 in vec3 vWorldPos;
@@ -8,49 +10,81 @@ out vec4 FragColor;
 
 uniform vec3 uCameraPos;
 
-uniform vec3 uLightPos;
-uniform vec3 uLightDir;
-uniform vec3 uLightColor;
-
-uniform float uCutOff;
-uniform float uOuterCutOff;
-
-void main()
+struct SpotLight
 {
-    vec3 normal = normalize(vNormal);
+    vec3 position;
+    vec3 direction;
+    vec3 color;
+    float cutOff;
+    float outerCutOff;
+};
 
-    vec3 lightDir = normalize(uLightPos - vWorldPos);
+uniform SpotLight uLights[NUM_LIGHTS];
 
-    vec3 viewDir = normalize(uCameraPos - vWorldPos);
-
-    vec3 ambient = 0.20 * vColor;
+vec3 calculateSpotLight(
+    SpotLight light,
+    vec3 normal,
+    vec3 viewDir
+)
+{
+    vec3 toLight = light.position - vWorldPos;
+    float distance = length(toLight);
+    vec3 lightDir = normalize(toLight);
 
     float diff = max(dot(normal, lightDir), 0.0);
-
-    vec3 diffuse = diff * vColor * uLightColor;
+    vec3 diffuse = diff * vColor * light.color;
 
     vec3 halfwayDir = normalize(lightDir + viewDir);
 
     float spec = 0.0;
 
-    if(diff > 0.0)
+    if (diff > 0.0)
     {
-        spec = pow(max(dot(normal, halfwayDir), 0.0), 32.0);
+        spec = pow(
+            max(dot(normal, halfwayDir), 0.0),
+            32.0
+        );
     }
 
-    vec3 specular = 0.35 * spec * uLightColor;
-    
-    float theta = dot(lightDir, normalize(-uLightDir));
+    vec3 specular = 0.35 * spec * light.color;
 
-    float epsilon = max(uCutOff - uOuterCutOff, 0.0001);
+    float theta = dot(
+        lightDir,
+        normalize(-light.direction)
+    );
 
-    float intensity = clamp((theta - uOuterCutOff) / epsilon, 0.0, 1.0);
+    float epsilon = max(
+        light.cutOff - light.outerCutOff,
+        0.0001
+    );
 
-    float distance = length(uLightPos - vWorldPos);
+    float intensity = clamp(
+        (theta - light.outerCutOff) / epsilon,
+        0.0,
+        1.0
+    );
 
-    float attenuation = 1.0 / (1.0 + 0.09 * distance + 0.032 * (distance * distance));
+    float attenuation = 1.0 /
+        (1.0 + 0.045 * distance + 0.0075 * distance * distance);
 
-    vec3 lighting = ambient + (diffuse + specular) * intensity * attenuation;
+    return (diffuse + specular) * intensity * attenuation;
+}
 
-    FragColor = vec4(lighting, 1.0);
+void main()
+{
+    vec3 normal = normalize(vNormal);
+    vec3 viewDir = normalize(uCameraPos - vWorldPos);
+
+    vec3 result = 0.25 * vColor;
+
+    for (int i = 0; i < NUM_LIGHTS; i++)
+    {
+        result += calculateSpotLight(
+            uLights[i],
+            normal,
+            viewDir
+        );
+    }
+
+    FragColor = vec4(result, 1.0);
 }
