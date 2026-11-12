@@ -129,6 +129,68 @@ GLuint createShaderProgram()
     return program;
 }
 
+GLuint createGlowShaderProgram()
+{
+    std::string vertexSource =
+        loadShaderSource("shaders/glow.vert");
+
+    std::string fragmentSource =
+        loadShaderSource("shaders/glow.frag");
+
+    if (vertexSource.empty() || fragmentSource.empty())
+    {
+        std::cerr << "Could not load glow shaders!" << std::endl;
+        return 0;
+    }
+
+    GLuint vertexShader = compileShader(
+        GL_VERTEX_SHADER,
+        vertexSource.c_str()
+    );
+
+    if (vertexShader == 0)
+        return 0;
+
+    GLuint fragmentShader = compileShader(
+        GL_FRAGMENT_SHADER,
+        fragmentSource.c_str()
+    );
+
+    if (fragmentShader == 0)
+    {
+        glDeleteShader(vertexShader);
+        return 0;
+    }
+
+    GLuint program = glCreateProgram();
+
+    glAttachShader(program, vertexShader);
+    glAttachShader(program, fragmentShader);
+    glLinkProgram(program);
+
+    GLint success = GL_FALSE;
+    glGetProgramiv(program, GL_LINK_STATUS, &success);
+
+    if (success != GL_TRUE)
+    {
+        char infoLog[1024];
+        glGetProgramInfoLog(
+            program, 1024, nullptr, infoLog
+        );
+
+        std::cerr << "Glow shader linking failed: "
+                  << infoLog << std::endl;
+
+        glDeleteProgram(program);
+        program = 0;
+    }
+
+    glDeleteShader(vertexShader);
+    glDeleteShader(fragmentShader);
+
+    return program;
+}
+
 
 // ============================================================
 // GPU MESH
@@ -455,6 +517,60 @@ int main()
 
         return -1;
     }
+
+    GLuint glowShaderProgram = createGlowShaderProgram();
+
+    if (glowShaderProgram == 0)
+    {
+        std::cerr << "Could not create glow shader program!" << std::endl;
+        return -1;
+    }
+
+    float glowVertices[] = {
+        -1.0f, -1.0f,
+         1.0f, -1.0f,
+         1.0f,  1.0f,
+
+        -1.0f, -1.0f,
+         1.0f,  1.0f,
+        -1.0f,  1.0f
+    };
+
+    GLuint glowVAO = 0;
+    GLuint glowVBO = 0;
+
+    glGenVertexArrays(1, &glowVAO);
+    glGenBuffers(1, &glowVBO);
+
+    glBindVertexArray(glowVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, glowVBO);
+
+    glBufferData(
+        GL_ARRAY_BUFFER,
+        sizeof(glowVertices),
+        glowVertices,
+        GL_STATIC_DRAW
+    );
+
+    glVertexAttribPointer(
+        0,
+        2,
+        GL_FLOAT,
+        GL_FALSE,
+        2 * sizeof(float),
+        nullptr
+    );
+
+    glEnableVertexAttribArray(0);
+
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+
+    std::cout << "Glow billboard geometry created!"
+              << std::endl;
+
+
+    std::cout << "Glow shaders compiled successfully!" << std::endl;
 
     GLint modelLocation =
         glGetUniformLocation(shaderProgram, "uModel");
@@ -852,6 +968,63 @@ int main()
             }
 
             glBindVertexArray(0);
+        
+            glEnable(GL_BLEND);
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+            glDepthMask(GL_FALSE);
+
+            glUseProgram(glowShaderProgram);
+
+            glUniformMatrix4fv(
+                glGetUniformLocation(glowShaderProgram, "uView"),
+                1,
+                GL_FALSE,
+                glm::value_ptr(view)
+            );
+
+            glUniformMatrix4fv(
+                glGetUniformLocation(glowShaderProgram, "uProjection"),
+                1,
+                GL_FALSE,
+                glm::value_ptr(projection)
+            );
+
+            glUniform1f(
+                glGetUniformLocation(glowShaderProgram, "uGlowSize"),
+                0.65f
+            );
+
+            glBindVertexArray(glowVAO);
+
+            for (int i = 0; i < 5; i++)
+            {
+                glUniform3fv(
+                    glGetUniformLocation(
+                        glowShaderProgram,
+                        "uGlowPosition"
+                    ),
+                    1,
+                    glm::value_ptr(lights[i].position)
+                );
+
+                glUniform3fv(
+                    glGetUniformLocation(
+                        glowShaderProgram,
+                        "uGlowColor"
+                    ),
+                    1,
+                    glm::value_ptr(lights[i].color)
+                );
+
+                glDrawArrays(GL_TRIANGLES, 0, 6);
+            }
+
+            glBindVertexArray(0);
+
+            glDepthMask(GL_TRUE);
+            glDisable(GL_BLEND);
+
+
         }
 
         glfwSwapBuffers(window);
