@@ -448,19 +448,36 @@ int main()
     while (!glfwWindowShouldClose(window))
     {
 
-        float time = static_cast<float>(glfwGetTime());
 
-        for (int i = 0; i < 4; i++)
-        {
-            float phase = static_cast<float>(i) * 1.57f;
+    float time = static_cast<float>(glfwGetTime());
 
-            float x = std::sin(time * 0.7f + phase) * 0.45f;
-            float z = std::cos(time * 0.5f + phase) * 0.30f;
+    for (int i = 0; i < 4; i++)
+    {
+        float phase = static_cast<float>(i) * 1.57f;
 
-            lights[i].direction = glm::normalize(
-                glm::vec3(x, -1.0f, z)
-            );
-        }
+        float x = std::sin(time * 0.7f + phase) * 0.45f;
+        float z = std::cos(time * 0.5f + phase) * 0.30f;
+
+        lights[i].direction = glm::normalize(
+            glm::vec3(x, -1.0f, z)
+        );
+
+        float red = 0.5f + 0.5f *
+            std::sin(time * 0.6f + phase);
+
+        float green = 0.5f + 0.5f *
+            std::sin(time * 0.6f + phase + 2.094f);
+
+        float blue = 0.5f + 0.5f *
+            std::sin(time * 0.6f + phase + 4.188f);
+
+        lights[i].color = glm::vec3(
+            red,
+            green,
+            blue
+        );
+    }
+
 
         int width = 0;
         int height = 0;
