@@ -287,6 +287,62 @@ void animateSpotlightMesh(
     mesh.model = parentTransform * mesh.originalModel;
 }
 
+
+void animateCentralSpotlight(
+    GpuMesh& mesh,
+    const glm::vec3& direction)
+{
+    if (mesh.name != "Spotlight Fixture 3" &&
+        mesh.name != "Spotlight Bulb 3")
+    {
+        return;
+    }
+
+    // Central spotlight mounting point
+    glm::vec3 pivot(0.0f, 5.5f, -2.5f);
+
+    // Calculate rotation angles from light direction
+    float angleZ = std::atan2(
+        direction.x,
+        -direction.y
+    );
+
+    float angleX = std::atan2(
+        -direction.z,
+        std::sqrt(
+            direction.x * direction.x +
+            direction.y * direction.y
+        )
+    );
+
+    glm::mat4 parentTransform(1.0f);
+
+    parentTransform = glm::translate(
+        parentTransform,
+        pivot
+    );
+
+    parentTransform = glm::rotate(
+        parentTransform,
+        angleZ,
+        glm::vec3(0.0f, 0.0f, 1.0f)
+    );
+
+    parentTransform = glm::rotate(
+        parentTransform,
+        angleX,
+        glm::vec3(1.0f, 0.0f, 0.0f)
+    );
+
+    parentTransform = glm::translate(
+        parentTransform,
+        -pivot
+    );
+
+    mesh.model = parentTransform * mesh.originalModel;
+}
+
+
 // ============================================================
 // DELETE GPU RESOURCES
 // ============================================================
@@ -460,29 +516,40 @@ int main()
     );
 
 
-    SpotLight lights[4] =
+
+    SpotLight lights[5] =
     {
         {
             glm::vec3(-5.0f, 4.95f, -2.5f),
             glm::vec3(0.0f, -1.0f, 0.0f),
             glm::vec3(1.0f, 0.1f, 0.1f)
         },
+
         {
             glm::vec3(-2.5f, 4.95f, -2.5f),
             glm::vec3(0.0f, -1.0f, 0.0f),
             glm::vec3(0.1f, 0.3f, 1.0f)
         },
+
         {
             glm::vec3(2.5f, 4.95f, -2.5f),
             glm::vec3(0.0f, -1.0f, 0.0f),
             glm::vec3(0.1f, 1.0f, 0.2f)
         },
+
         {
             glm::vec3(5.0f, 4.95f, -2.5f),
             glm::vec3(0.0f, -1.0f, 0.0f),
             glm::vec3(0.8f, 0.1f, 1.0f)
+        },
+
+        {
+            glm::vec3(0.0f, 4.95f, -2.5f),
+            glm::vec3(0.0f, -1.0f, 0.0f),
+            glm::vec3(1.0f, 0.88f, 0.65f)
         }
     };
+
 
 
 
@@ -545,6 +612,78 @@ int main()
             blue
         );
     }
+
+        glm::vec3 targets[3] =
+        {
+            glm::vec3(-3.0f, 1.0f, -2.0f), // Drummer
+            glm::vec3(0.0f, 1.5f, 1.2f),   // Singer
+            glm::vec3(3.0f, 1.5f, 0.0f)    // Guitarist
+        };
+
+        float followTime = time * 0.25f;
+
+        float targetPosition =
+            (std::sin(followTime) + 1.0f) * 1.0f;
+
+        int firstTarget = static_cast<int>(targetPosition);
+        int secondTarget = (firstTarget + 1) % 3;
+
+        float blend = targetPosition - firstTarget;
+        blend = blend * blend * (3.0f - 2.0f * blend);
+
+        glm::vec3 followTarget = glm::mix(
+            targets[firstTarget],
+            targets[secondTarget],
+            blend
+        );
+
+        lights[4].direction = glm::normalize(
+            followTarget - lights[4].position
+        );
+
+
+
+        glm::vec3 centralPivot(0.0f, 5.5f, -2.5f);
+
+        float centralAngleZ = std::atan2(
+            lights[4].direction.x,
+            -lights[4].direction.y
+        );
+
+        float centralAngleX = std::atan2(
+            -lights[4].direction.z,
+            std::sqrt(
+                lights[4].direction.x * lights[4].direction.x +
+                lights[4].direction.y * lights[4].direction.y
+            )
+        );
+
+        glm::mat4 centralRotation(1.0f);
+
+        centralRotation = glm::rotate(
+            centralRotation,
+            centralAngleZ,
+            glm::vec3(0.0f, 0.0f, 1.0f)
+        );
+
+        centralRotation = glm::rotate(
+            centralRotation,
+            centralAngleX,
+            glm::vec3(1.0f, 0.0f, 0.0f)
+        );
+
+        glm::vec3 centralBulbOffset(0.0f, -0.55f, 0.0f);
+
+        lights[4].position = centralPivot +
+            glm::vec3(
+                centralRotation * glm::vec4(centralBulbOffset, 1.0f)
+            );
+
+        lights[4].direction = glm::normalize(
+            followTarget - lights[4].position
+        );
+
+
         int spotlightNumbers[4] = {1, 2, 4, 5};
 
         for (GpuMesh& mesh : gpuMeshes)
@@ -560,6 +699,8 @@ int main()
                     angle
                 );
             }
+
+            animateCentralSpotlight(mesh, lights[4].direction);
         }
 
         int width = 0;
@@ -595,10 +736,12 @@ int main()
             );
 
             
-            for (int i = 0; i < 4; i++)
+            for (int i = 0; i < 5; i++)
             {
                 std::string prefix =
                     "uLights[" + std::to_string(i) + "].";
+
+
 
                 glUniform3fv(
                     glGetUniformLocation(
@@ -627,12 +770,15 @@ int main()
                     glm::value_ptr(lights[i].color)
                 );
 
+                float innerAngle = (i == 4) ? 40.0f : 25.0f;
+                float outerAngle = (i == 4) ? 50.0f : 35.0f;
+
                 glUniform1f(
                     glGetUniformLocation(
                         shaderProgram,
                         (prefix + "cutOff").c_str()
                     ),
-                    glm::cos(glm::radians(25.0f))
+                    glm::cos(glm::radians(innerAngle))
                 );
 
                 glUniform1f(
@@ -640,7 +786,7 @@ int main()
                         shaderProgram,
                         (prefix + "outerCutOff").c_str()
                     ),
-                    glm::cos(glm::radians(35.0f))
+                    glm::cos(glm::radians(outerAngle))
                 );
             }
 

@@ -1,6 +1,6 @@
 #version 330 core
 
-#define NUM_LIGHTS 4
+#define NUM_LIGHTS 5
 
 in vec3 vColor;
 in vec3 vNormal;
