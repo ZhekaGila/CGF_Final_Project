@@ -1037,6 +1037,10 @@ int main()
 
     deleteGpuMeshes(gpuMeshes);
 
+    glDeleteBuffers(1, &glowVBO);
+    glDeleteVertexArrays(1, &glowVAO);
+
+    glDeleteProgram(glowShaderProgram);
     glDeleteProgram(shaderProgram);
 
     glfwDestroyWindow(window);
