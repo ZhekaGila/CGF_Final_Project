@@ -14,64 +14,30 @@
 #include <cstdint>
 #include <iostream>
 #include <vector>
+#include <fstream>
+#include <sstream>
+#include <string>
 
 // ============================================================
 // SHADERS
 // ============================================================
 
-const char* vertexShaderSource = R"GLSL(
-#version 330 core
-
-layout(location = 0) in vec3 aPosition;
-layout(location = 1) in vec3 aNormal;
-layout(location = 2) in vec2 aUV;
-layout(location = 3) in vec3 aColor;
-
-uniform mat4 uModel;
-uniform mat4 uView;
-uniform mat4 uProjection;
-
-out vec3 vColor;
-out vec3 vNormal;
-
-void main()
+std::string loadShaderSource(const std::string& filePath)
 {
-    vec4 worldPosition = uModel * vec4(aPosition, 1.0);
+    std::ifstream file(filePath);
 
-    gl_Position = uProjection * uView * worldPosition;
+    if (!file.is_open())
+    {
+        std::cerr << "Failed to open shader file: " << filePath <<std::endl;
 
-    vColor = aColor;
+        return "";
+    }
 
-    mat3 normalMatrix = mat3(transpose(inverse(uModel)));
-    vNormal = normalize(normalMatrix * aNormal);
+    std::stringstream buffer;
+    buffer << file.rdbuf();
+    
+    return buffer.str();
 }
-)GLSL";
-
-
-const char* fragmentShaderSource = R"GLSL(
-#version 330 core
-
-in vec3 vColor;
-in vec3 vNormal;
-
-out vec4 FragColor;
-
-void main()
-{
-    vec3 normal = normalize(vNormal);
-
-    vec3 lightDirection = normalize(vec3(-0.4, 0.8, 0.5));
-
-    float diffuse = max(dot(normal, lightDirection), 0.0);
-
-    float ambient = 0.35;
-
-    vec3 lighting = vColor * (ambient + 0.65 * diffuse);
-
-    FragColor = vec4(lighting, 1.0);
-}
-)GLSL";
-
 
 // ============================================================
 // SHADER COMPILATION
@@ -111,16 +77,24 @@ GLuint compileShader(GLenum type, const char* source)
 
 GLuint createShaderProgram()
 {
-    GLuint vertexShader =
-        compileShader(GL_VERTEX_SHADER, vertexShaderSource);
 
-    if (vertexShader == 0)
+    std::string vertexSource = loadShaderSource("shaders/stage.vert");
+    
+    std::string fragmentSource = loadShaderSource("shaders/stage.frag");
+
+    if(vertexSource.empty() || fragmentSource.empty())
+    {
+        return 0;
+    }
+
+    GLuint vertexShader = compileShader(GL_VERTEX_SHADER, vertexSource.c_str());
+
+    if(vertexShader == 0)
         return 0;
 
-    GLuint fragmentShader =
-        compileShader(GL_FRAGMENT_SHADER, fragmentShaderSource);
+    GLuint fragmentShader = compileShader(GL_FRAGMENT_SHADER, fragmentSource.c_str());
 
-    if (fragmentShader == 0)
+    if( fragmentShader == 0)
     {
         glDeleteShader(vertexShader);
         return 0;
