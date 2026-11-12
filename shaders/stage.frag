@@ -75,7 +75,7 @@ void main()
     vec3 normal = normalize(vNormal);
     vec3 viewDir = normalize(uCameraPos - vWorldPos);
 
-    vec3 result = 0.25 * vColor;
+    vec3 result = 0.40 * vColor;
 
     for (int i = 0; i < NUM_LIGHTS; i++)
     {
