@@ -157,6 +157,8 @@ GpuMesh uploadMesh(const cgf::ScenePart& part)
 {
     GpuMesh gpuMesh;
 
+    
+
     gpuMesh.name = part.name;
     gpuMesh.originalModel = part.transform;
 
@@ -248,6 +250,42 @@ GpuMesh uploadMesh(const cgf::ScenePart& part)
     return gpuMesh;
 }
 
+
+void animateSpotlightMesh(
+    GpuMesh& mesh,
+    int spotlightNumber,
+    float angle)
+{
+    std::string number = std::to_string(spotlightNumber);
+
+    if (mesh.name != "Spotlight Fixture " + number &&
+        mesh.name != "Spotlight Bulb " + number)
+    {
+        return;
+    }
+
+    float x = -5.0f + (spotlightNumber - 1) * 2.5f;
+
+    glm::vec3 pivot(x, 5.5f, -2.5f);
+
+    glm::mat4 parentTransform(1.0f);
+
+    parentTransform = glm::translate(
+        parentTransform, pivot
+    );
+
+    parentTransform = glm::rotate(
+        parentTransform,
+        angle,
+        glm::vec3(0.0f, 0.0f, 1.0f)
+    );
+
+    parentTransform = glm::translate(
+        parentTransform, -pivot
+    );
+
+    mesh.model = parentTransform * mesh.originalModel;
+}
 
 // ============================================================
 // DELETE GPU RESOURCES
@@ -462,12 +500,35 @@ int main()
     {
         float phase = static_cast<float>(i) * 1.57f;
 
-        float x = std::sin(time * 0.7f + phase) * 0.45f;
-        float z = std::cos(time * 0.5f + phase) * 0.30f;
+        float angle = std::sin(time * 0.7f + phase) * 0.45f;
 
         lights[i].direction = glm::normalize(
-            glm::vec3(x, -1.0f, z)
+            glm::vec3(
+                std::sin(angle),
+                -std::cos(angle),
+                0.0f
+            )
         );
+
+        const float spotlightX[4] = {
+            -5.0f, -2.5f, 2.5f, 5.0f
+        };
+
+        glm::vec3 pivot(
+            spotlightX[i], 5.5f, -2.5f
+        );
+
+        glm::mat4 rotation = glm::rotate(
+            glm::mat4(1.0f),
+            angle,
+            glm::vec3(0.0f, 0.0f, 1.0f)
+        );
+
+        glm::vec3 bulbOffset(0.0f, -0.55f, 0.0f);
+
+        lights[i].position = pivot +
+            glm::vec3(rotation * glm::vec4(bulbOffset, 1.0f));
+
 
         float red = 0.5f + 0.5f *
             std::sin(time * 0.6f + phase);
@@ -484,7 +545,22 @@ int main()
             blue
         );
     }
+        int spotlightNumbers[4] = {1, 2, 4, 5};
 
+        for (GpuMesh& mesh : gpuMeshes)
+        {
+            for (int i = 0; i < 4; i++)
+            {
+                float phase = static_cast<float>(i) * 1.57f;
+                float angle = std::sin(time * 0.7f + phase) * 0.45f;
+
+                animateSpotlightMesh(
+                    mesh,
+                    spotlightNumbers[i],
+                    angle
+                );
+            }
+        }
 
         int width = 0;
         int height = 0;
