@@ -11,9 +11,12 @@ uniform mat4 uProjection;
 
 out vec3 vColor;
 out vec3 vNormal;
+out vec3 vWorldPos;
 
 void main(){
     vec4 worldPosition = uModel * vec4(aPosition, 1.0);
+
+    vWorldPos = worldPosition.xyz;
     
     gl_Position = uProjection * uView * worldPosition;
 
