@@ -9,7 +9,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 # Find required libraries
-find_package(glfw3 3.5 REQUIRED)
+find_package(glfw3 3.3 REQUIRED)
 find_package(glm CONFIG REQUIRED)
 
 # Find OpenGL
@@ -57,6 +57,7 @@ target_link_libraries(stage_geometry PUBLIC
 # Main application
 add_executable(ConcertStage
     src/main.cpp
+    src/audience/Audience.cpp
 )
 
 target_include_directories(ConcertStage PRIVATE
@@ -69,4 +70,9 @@ target_link_libraries(ConcertStage PRIVATE
     glad
     OpenGL::GL
     stage_geometry
+)
+
+# Resolve shaders from any working directory (Terminal, IDE, build folder).
+target_compile_definitions(ConcertStage PRIVATE
+    CGF_SHADER_DIR="${CMAKE_CURRENT_SOURCE_DIR}/shaders"
 )

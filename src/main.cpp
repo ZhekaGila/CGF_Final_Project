@@ -4,6 +4,8 @@
 #include <GLFW/glfw3.h>
 
 #include "geometry/StageGeometry.h"
+#include "geometry/Primitives.h"
+#include "audience/Audience.h"
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -24,7 +26,13 @@
 
 std::string loadShaderSource(const std::string& filePath)
 {
-    std::ifstream file(filePath);
+#ifdef CGF_SHADER_DIR
+    const std::string resolvedPath = std::string(CGF_SHADER_DIR) +
+        filePath.substr(filePath.find_last_of('/'));
+#else
+    const std::string resolvedPath = filePath;
+#endif
+    std::ifstream file(resolvedPath);
 
     if (!file.is_open())
     {
@@ -589,6 +597,12 @@ int main()
 
     std::vector<cgf::ScenePart> scene = cgf::createStageGeometry();
 
+    cgf::ScenePart audienceFloor;
+    audienceFloor.name = "Audience floor";
+    audienceFloor.mesh = cgf::makeBox({16.0f, 0.2f, 14.0f}, {0.10f, 0.11f, 0.15f});
+    audienceFloor.transform = glm::translate(glm::mat4(1), {0.0f, -0.1f, 12.0f});
+    scene.push_back(audienceFloor);
+
     std::cout << "Stage geometry created!" << std::endl;
     std::cout << "Number of scene objects: "
               << scene.size() << std::endl;
@@ -622,8 +636,17 @@ int main()
     // 7. CAMERA
     // --------------------------------------------------------
 
-    glm::vec3 cameraPosition(12.0f, 9.0f, 18.0f);
-    glm::vec3 cameraTarget(0.0f, 2.0f, 0.0f);
+    cgf::Audience audience;
+    audience.initialize();
+    bool audiencePaused = false, audienceEnergetic = true, audienceVisible = true;
+    bool previousP = false, previousJ = false, previousN = false, previousH = false;
+    float audienceTime = 0.0f;
+    double lastFrameTime = glfwGetTime(), fpsStart = lastFrameTime;
+    int fpsFrames = 0;
+    std::cout << "Audience: P pause | J energy | N density | H hide | Esc exit\n";
+
+    glm::vec3 cameraPosition(19.0f, 15.0f, 29.0f);
+    glm::vec3 cameraTarget(0.0f, 1.5f, 6.0f);
 
     glm::mat4 view = glm::lookAt(
         cameraPosition,
@@ -677,7 +700,34 @@ int main()
     {
 
 
-    float time = static_cast<float>(glfwGetTime());
+    const double now = glfwGetTime();
+    const float deltaTime = static_cast<float>(now - lastFrameTime);
+    lastFrameTime = now;
+    auto pressed = [&](int key, bool& previous) {
+        const bool down = glfwGetKey(window, key) == GLFW_PRESS;
+        const bool edge = down && !previous;
+        previous = down;
+        return edge;
+    };
+    if (pressed(GLFW_KEY_P, previousP)) audiencePaused = !audiencePaused;
+    if (pressed(GLFW_KEY_J, previousJ)) audienceEnergetic = !audienceEnergetic;
+    if (pressed(GLFW_KEY_N, previousN)) audience.cycleDensity();
+    if (pressed(GLFW_KEY_H, previousH)) audienceVisible = !audienceVisible;
+    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+        glfwSetWindowShouldClose(window, GLFW_TRUE);
+    if (!audiencePaused) audienceTime += deltaTime;
+    ++fpsFrames;
+    if (now - fpsStart >= 0.5) {
+        std::ostringstream title;
+        title << "Concert Stage | FPS " << static_cast<int>(fpsFrames / (now - fpsStart))
+              << " | Audience " << (audienceVisible ? audience.count() : 0)
+              << (audiencePaused ? " paused" : (audienceEnergetic ? " energetic" : " calm"))
+              << " | P pause / J energy / N density / H hide / Esc exit";
+        glfwSetWindowTitle(window, title.str().c_str());
+        fpsStart = now;
+        fpsFrames = 0;
+    }
+    float time = static_cast<float>(now);
 
     for (int i = 0; i < 4; i++)
     {
@@ -967,8 +1017,9 @@ int main()
                 );
             }
 
+            if (audienceVisible) audience.draw(shaderProgram, audienceTime, audienceEnergetic);
             glBindVertexArray(0);
-        
+
             glEnable(GL_BLEND);
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
             glDepthMask(GL_FALSE);
@@ -1035,6 +1086,7 @@ int main()
     // 9. CLEANUP
     // --------------------------------------------------------
 
+    audience.release();
     deleteGpuMeshes(gpuMeshes);
 
     glDeleteBuffers(1, &glowVBO);
