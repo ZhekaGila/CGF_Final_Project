@@ -6,6 +6,7 @@
 #include "geometry/StageGeometry.h"
 #include "geometry/Primitives.h"
 #include "audience/Audience.h"
+#include "Camera.h"
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -19,6 +20,7 @@
 #include <sstream>
 #include <string>
 #include <cmath>
+#include <algorithm>
 
 // ============================================================
 // SHADERS
@@ -441,6 +443,23 @@ struct SpotLight
     glm::vec3 color;
 };
 
+// Participant 4: smooth interpolation and camera view presets.
+float smoothStep01(float value)
+{
+    value = std::max(0.0f, std::min(1.0f, value));
+    return value * value * (3.0f - 2.0f * value);
+}
+
+// Calculate yaw and pitch for a camera at position looking at target.
+void pointCameraAt(Camera& camera, const glm::vec3& position,
+                   const glm::vec3& target)
+{
+    glm::vec3 front = glm::normalize(target - position);
+    const float yaw = glm::degrees(std::atan2(front.z, front.x));
+    const float pitch = glm::degrees(std::asin(glm::clamp(front.y, -1.0f, 1.0f)));
+    camera.setPose(position, yaw, pitch);
+}
+
 int main()
 {
     // --------------------------------------------------------
@@ -643,18 +662,91 @@ int main()
     float audienceTime = 0.0f;
     double lastFrameTime = glfwGetTime(), fpsStart = lastFrameTime;
     int fpsFrames = 0;
+    std::cout << "Camera: WASD move | Q/E down/up | Shift fast | Mouse look | Scroll zoom\n";
     std::cout << "Audience: P pause | J energy | N density | H hide | Esc exit\n";
 
-    glm::vec3 cameraPosition(19.0f, 15.0f, 29.0f);
-    glm::vec3 cameraTarget(0.0f, 1.5f, 6.0f);
-
-    glm::mat4 view = glm::lookAt(
-        cameraPosition,
-        cameraTarget,
-        glm::vec3(0.0f, 1.0f, 0.0f)
+    Camera camera(
+        glm::vec3(19.0f, 15.0f, 29.0f),
+        -129.6f,
+        -24.3f
     );
 
+    // Camera modes: manual / automatic cinematic route.
+    constexpr float pi = 3.14159265358979323846f;
+    bool cinematicMode = false;
+    float cinematicTime = 0.0f;
+    float cinematicBlend = 0.0f;
+    Camera cinematicStart = camera;
+    Camera wowStart = camera;
+    bool previousC = false, previousV = false;
+    bool previousF1 = false, previousF2 = false;
+    bool previousF3 = false, previousF4 = false;
+    bool previous4 = false, previous5 = false;
+    bool previous6 = false, previous7 = false;
 
+    auto resetCamera = [&]() {
+        camera = Camera(glm::vec3(19.0f, 15.0f, 29.0f), -129.6f, -24.3f);
+        cinematicMode = false;
+        cinematicTime = 0.0f;
+        cinematicBlend = 0.0f;
+    };
+
+    auto switchToView = [&](const glm::vec3& position, const glm::vec3& target) {
+        cinematicMode = false;
+        cinematicBlend = 0.0f;
+        pointCameraAt(camera, position, target);
+    };
+
+    glfwSetWindowUserPointer(window, &camera);
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+
+    glfwSetCursorPosCallback(window,
+        [](GLFWwindow* win, double xpos, double ypos)
+        {
+            static bool firstMouse = true;
+            static double lastX = 0.0;
+            static double lastY = 0.0;
+
+            if (firstMouse)
+            {
+                lastX = xpos;
+                lastY = ypos;
+                firstMouse = false;
+                return;
+            }
+
+            float xOffset = static_cast<float>(xpos - lastX);
+            float yOffset = static_cast<float>(lastY - ypos);
+            lastX = xpos;
+            lastY = ypos;
+
+            Camera* cam = static_cast<Camera*>(glfwGetWindowUserPointer(win));
+            if (cam)
+                cam->processMouseMovement(xOffset, yOffset);
+        }
+    );
+
+    glfwSetScrollCallback(window,
+        [](GLFWwindow* win, double, double yOffset)
+        {
+            Camera* cam = static_cast<Camera*>(glfwGetWindowUserPointer(win));
+            if (cam)
+                cam->processMouseScroll(static_cast<float>(yOffset));
+        }
+    );
+
+    // Participant 4: lighting modes, animation speed and Wow moment.
+    int lightingMode = 1;        // 1 colorful, 2 warm, 3 cool
+    float showSpeed = 1.0f;
+    float showTime = 0.0f;
+    float wowRemaining = 0.0f;
+    float wowElapsed = 0.0f;
+    constexpr float wowDuration = 5.0f;
+    bool previous1 = false, previous2 = false, previous3 = false;
+    bool previousPlus = false, previousMinus = false, previousReset = false;
+    bool previousSpace = false;
+    std::cout << "Lighting: 1 colorful | 2 warm | 3 cool | +/- speed | R reset speed | Space WOW\n";
+    std::cout << "Camera views: C reset | V cinematic on/off | F1/4 wide | F2/5 stage | F3/6 band | F4/7 crowd\n";
 
     SpotLight lights[5] =
     {
@@ -703,6 +795,30 @@ int main()
     const double now = glfwGetTime();
     const float deltaTime = static_cast<float>(now - lastFrameTime);
     lastFrameTime = now;
+
+    const bool fast =
+        glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS ||
+        glfwGetKey(window, GLFW_KEY_RIGHT_SHIFT) == GLFW_PRESS;
+
+    if (!cinematicMode && wowRemaining <= 0.0f &&
+        glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+        camera.processKeyboard(Camera::Movement::Forward, deltaTime, fast);
+    if (!cinematicMode && wowRemaining <= 0.0f &&
+        glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+        camera.processKeyboard(Camera::Movement::Backward, deltaTime, fast);
+    if (!cinematicMode && wowRemaining <= 0.0f &&
+        glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+        camera.processKeyboard(Camera::Movement::Left, deltaTime, fast);
+    if (!cinematicMode && wowRemaining <= 0.0f &&
+        glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+        camera.processKeyboard(Camera::Movement::Right, deltaTime, fast);
+    if (!cinematicMode && wowRemaining <= 0.0f &&
+        glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
+        camera.processKeyboard(Camera::Movement::Down, deltaTime, fast);
+    if (!cinematicMode && wowRemaining <= 0.0f &&
+        glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
+        camera.processKeyboard(Camera::Movement::Up, deltaTime, fast);
+
     auto pressed = [&](int key, bool& previous) {
         const bool down = glfwGetKey(window, key) == GLFW_PRESS;
         const bool edge = down && !previous;
@@ -713,27 +829,137 @@ int main()
     if (pressed(GLFW_KEY_J, previousJ)) audienceEnergetic = !audienceEnergetic;
     if (pressed(GLFW_KEY_N, previousN)) audience.cycleDensity();
     if (pressed(GLFW_KEY_H, previousH)) audienceVisible = !audienceVisible;
+    if (pressed(GLFW_KEY_1, previous1)) lightingMode = 1;
+    if (pressed(GLFW_KEY_2, previous2)) lightingMode = 2;
+    if (pressed(GLFW_KEY_3, previous3)) lightingMode = 3;
+    if (pressed(GLFW_KEY_EQUAL, previousPlus)) showSpeed = std::min(3.0f, showSpeed + 0.25f);
+    if (pressed(GLFW_KEY_MINUS, previousMinus)) showSpeed = std::max(0.25f, showSpeed - 0.25f);
+    if (pressed(GLFW_KEY_R, previousReset)) showSpeed = 1.0f;
+    // Reset camera and four useful demonstration viewpoints.
+    if (pressed(GLFW_KEY_C, previousC)) {
+        wowRemaining = 0.0f;
+        wowElapsed = 0.0f;
+        resetCamera();
+    }
+    const bool view1Fn = pressed(GLFW_KEY_F1, previousF1);
+    const bool view1Num = pressed(GLFW_KEY_4, previous4);
+    if (view1Fn || view1Num) {
+        wowRemaining = 0.0f;
+        wowElapsed = 0.0f;
+        switchToView({19.0f, 15.0f, 29.0f}, {0.0f, 1.5f, 6.0f});
+    }
+    const bool view2Fn = pressed(GLFW_KEY_F2, previousF2);
+    const bool view2Num = pressed(GLFW_KEY_5, previous5);
+    if (view2Fn || view2Num) {
+        wowRemaining = 0.0f;
+        wowElapsed = 0.0f;
+        switchToView({0.0f, 7.0f, 21.0f}, {0.0f, 2.0f, -1.0f});
+    }
+    const bool view3Fn = pressed(GLFW_KEY_F3, previousF3);
+    const bool view3Num = pressed(GLFW_KEY_6, previous6);
+    if (view3Fn || view3Num) {
+        wowRemaining = 0.0f;
+        wowElapsed = 0.0f;
+        switchToView({4.0f, 3.8f, 10.0f}, {0.0f, 1.8f, 0.0f});
+    }
+    const bool view4Fn = pressed(GLFW_KEY_F4, previousF4);
+    const bool view4Num = pressed(GLFW_KEY_7, previous7);
+    if (view4Fn || view4Num) {
+        wowRemaining = 0.0f;
+        wowElapsed = 0.0f;
+        switchToView({-2.0f, 2.3f, 23.0f}, {0.0f, 2.5f, -1.0f});
+    }
+    if (pressed(GLFW_KEY_V, previousV)) {
+        cinematicMode = !cinematicMode;
+        if (cinematicMode) {
+            cinematicTime = 0.0f;
+            cinematicBlend = 0.0f;
+            cinematicStart = camera;
+        }
+    }
+
+    if (pressed(GLFW_KEY_SPACE, previousSpace)) {
+        wowRemaining = wowDuration;
+        wowElapsed = 0.0f;
+        wowStart = camera;
+    }
+    if (wowRemaining > 0.0f) {
+        wowRemaining = std::max(0.0f, wowRemaining - deltaTime);
+        wowElapsed += deltaTime;
+    }
+    // Smooth fade-in/fade-out: no fast strobe flashes.
+    float wowStrength = std::min(1.0f, std::min(wowElapsed / 0.45f,
+                                                wowRemaining / 0.85f));
+    wowStrength = std::max(0.0f, wowStrength);
+
+    // Cinematic fly-over: smoothly approach the stage, then orbit to show
+    // the musicians and the crowd. Animation uses real time, not show speed.
+    if (wowRemaining <= 0.0f && cinematicMode) {
+        cinematicTime += deltaTime;
+        cinematicBlend = smoothStep01(cinematicTime / 1.7f);
+        const float orbit = std::max(0.0f, cinematicTime - 1.7f);
+        const float theta = orbit * 0.18f;
+        const glm::vec3 desiredPosition(
+            10.0f * std::cos(theta + 0.9f),
+            7.2f + 1.6f * std::sin(orbit * 0.35f),
+            17.0f + 6.0f * std::sin(theta + 0.9f)
+        );
+        const glm::vec3 position = glm::mix(
+            cinematicStart.getPosition(), desiredPosition, cinematicBlend);
+        const glm::vec3 desiredTarget(0.0f, 2.0f, -1.0f);
+        const glm::vec3 desiredFront = glm::normalize(desiredTarget - position);
+        glm::vec3 front = glm::mix(cinematicStart.getFront(), desiredFront,
+                                   cinematicBlend);
+        front = glm::normalize(front);
+        pointCameraAt(camera, position, position + front);
+    }
+
+    // Wow camera move: gently dolly toward the stage, lift up, then return
+    // to the exact same starting position after five seconds.
+    if (wowRemaining > 0.0f) {
+        const float progress = std::min(1.0f, wowElapsed / wowDuration);
+        const float pulse = std::sin(pi * progress) * wowStrength;
+        const glm::vec3 start = wowStart.getPosition();
+        const glm::vec3 front = wowStart.getFront();
+        const glm::vec3 position = start + front * (2.6f * pulse)
+                                   + glm::vec3(0.0f, 0.7f * pulse, 0.0f);
+        const glm::vec3 desiredFront = glm::normalize(
+            glm::vec3(0.0f, 2.0f, 0.0f) - position);
+        glm::vec3 direction = glm::normalize(glm::mix(front, desiredFront,
+                                                      0.22f * pulse));
+        pointCameraAt(camera, position, position + direction);
+    } else if (wowElapsed > 0.0f) {
+        // Restore original camera pose and resume cinematic movement if active.
+        camera = wowStart;
+        wowElapsed = 0.0f;
+    }
+
+    showTime += deltaTime * showSpeed;
+
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, GLFW_TRUE);
-    if (!audiencePaused) audienceTime += deltaTime;
+    if (!audiencePaused) audienceTime += deltaTime * showSpeed;
     ++fpsFrames;
     if (now - fpsStart >= 0.5) {
         std::ostringstream title;
         title << "Concert Stage | FPS " << static_cast<int>(fpsFrames / (now - fpsStart))
               << " | Audience " << (audienceVisible ? audience.count() : 0)
               << (audiencePaused ? " paused" : (audienceEnergetic ? " energetic" : " calm"))
-              << " | P pause / J energy / N density / H hide / Esc exit";
+              << " | Light " << lightingMode << " | Speed " << showSpeed << "x"
+              << (wowRemaining > 0.0f ? " | WOW!" : "")
+              << (cinematicMode ? " | CINEMATIC" : " | MANUAL")
+              << " | C reset / V cinematic / 4-7/F1-F4 views / Space WOW / Esc";
         glfwSetWindowTitle(window, title.str().c_str());
         fpsStart = now;
         fpsFrames = 0;
     }
-    float time = static_cast<float>(now);
+    float time = showTime;
 
     for (int i = 0; i < 4; i++)
     {
         float phase = static_cast<float>(i) * 1.57f;
 
-        float angle = std::sin(time * 0.7f + phase) * 0.45f;
+        float angle = std::sin(time * (0.7f + 0.6f * wowStrength) + phase) * (0.45f + 0.22f * wowStrength);
 
         lights[i].direction = glm::normalize(
             glm::vec3(
@@ -772,11 +998,25 @@ int main()
         float blue = 0.5f + 0.5f *
             std::sin(time * 0.6f + phase + 4.188f);
 
-        lights[i].color = glm::vec3(
-            red,
-            green,
-            blue
-        );
+        if (lightingMode == 2) {
+            // Warm, golden concert lighting.
+            lights[i].color = glm::vec3(1.0f, 0.55f + 0.12f * red, 0.16f + 0.10f * blue);
+        } else if (lightingMode == 3) {
+            // Cool blue and violet lighting.
+            lights[i].color = glm::vec3(0.24f + 0.20f * red, 0.35f + 0.25f * green, 0.9f);
+        } else {
+            lights[i].color = glm::vec3(red, green, blue);
+        }
+        if (wowStrength > 0.0f) {
+            // Broad, intense colors instead of rapid barely visible flashes.
+            const glm::vec3 wowPalette[4] = {
+                {1.0f, 0.32f, 0.78f}, {0.25f, 0.85f, 1.0f},
+                {1.0f, 0.78f, 0.25f}, {0.55f, 0.35f, 1.0f}
+            };
+            float breathe = 0.85f + 0.15f * std::sin(time * 3.0f + phase);
+            glm::vec3 wowColor = wowPalette[i] * (2.3f * breathe);
+            lights[i].color = glm::mix(lights[i].color, wowColor, wowStrength);
+        }
     }
 
         glm::vec3 targets[3] =
@@ -848,7 +1088,12 @@ int main()
         lights[4].direction = glm::normalize(
             followTarget - lights[4].position
         );
-
+        lights[4].color = lightingMode == 2 ? glm::vec3(1.0f, 0.82f, 0.45f)
+                        : lightingMode == 3 ? glm::vec3(0.45f, 0.75f, 1.0f)
+                        : glm::vec3(1.0f, 0.88f, 0.65f);
+        if (wowStrength > 0.0f)
+            lights[4].color = glm::mix(lights[4].color,
+                                       glm::vec3(2.3f, 2.0f, 1.6f), wowStrength);
 
         int spotlightNumbers[4] = {1, 2, 4, 5};
 
@@ -857,7 +1102,7 @@ int main()
             for (int i = 0; i < 4; i++)
             {
                 float phase = static_cast<float>(i) * 1.57f;
-                float angle = std::sin(time * 0.7f + phase) * 0.45f;
+                float angle = std::sin(time * (0.7f + 0.6f * wowStrength) + phase) * (0.45f + 0.22f * wowStrength);
 
                 animateSpotlightMesh(
                     mesh,
@@ -878,19 +1123,18 @@ int main()
         {
             glViewport(0, 0, width, height);
 
-            glClearColor(0.025f, 0.025f, 0.08f, 1.0f);
+            glClearColor(0.025f + 0.035f * wowStrength,
+                         0.025f + 0.018f * wowStrength,
+                         0.08f + 0.07f * wowStrength, 1.0f);
 
             glClear(
                 GL_COLOR_BUFFER_BIT |
                 GL_DEPTH_BUFFER_BIT
             );
 
-            glm::mat4 projection = glm::perspective(
-                glm::radians(45.0f),
-                static_cast<float>(width) /
-                    static_cast<float>(height),
-                0.1f,
-                100.0f
+            glm::mat4 view = camera.getViewMatrix();
+            glm::mat4 projection = camera.getProjectionMatrix(
+                static_cast<float>(width) / static_cast<float>(height)
             );
 
             glUseProgram(shaderProgram);
@@ -903,7 +1147,7 @@ int main()
             glUniform3fv(
                 cameraPosLocation,
                 1,
-                glm::value_ptr(cameraPosition)
+                glm::value_ptr(camera.getPosition())
             );
 
             
@@ -996,7 +1240,7 @@ int main()
 
                     if (mesh.name == bulbName)
                     {
-                        emissionColor = lights[i].color * 1.5f;
+                        emissionColor = lights[i].color * (1.5f + 0.65f * wowStrength);
                         break;
                     }
                 }
@@ -1017,7 +1261,7 @@ int main()
                 );
             }
 
-            if (audienceVisible) audience.draw(shaderProgram, audienceTime, audienceEnergetic);
+            if (audienceVisible) audience.draw(shaderProgram, audienceTime, audienceEnergetic || wowStrength > 0.2f);
             glBindVertexArray(0);
 
             glEnable(GL_BLEND);
@@ -1042,7 +1286,7 @@ int main()
 
             glUniform1f(
                 glGetUniformLocation(glowShaderProgram, "uGlowSize"),
-                0.65f
+                0.65f + 1.0f * wowStrength
             );
 
             glBindVertexArray(glowVAO);
