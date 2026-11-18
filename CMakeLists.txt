@@ -57,6 +57,7 @@ target_link_libraries(stage_geometry PUBLIC
 # Main application
 add_executable(ConcertStage
     src/main.cpp
+    src/Camera.cpp
     src/audience/Audience.cpp
 )
 
