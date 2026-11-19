@@ -129,6 +129,65 @@ std::vector<ScenePart> createStageGeometry()
             angleDegrees
         );
     };
+        // Create a fully 3D cylindrical limb between two points.
+    auto addLimb3D = [&](const std::string& name,
+                         const glm::vec3& start,
+                         const glm::vec3& end,
+                         float radius,
+                         const glm::vec3& color)
+    {
+        const glm::vec3 delta = end - start;
+        const float length = glm::length(delta);
+
+        if (length < 0.001f)
+            return;
+
+        const glm::vec3 direction = delta / length;
+        const glm::vec3 defaultAxis(0.0f, 1.0f, 0.0f);
+
+        float cosine = glm::dot(defaultAxis, direction);
+
+        if (cosine > 1.0f) cosine = 1.0f;
+        if (cosine < -1.0f) cosine = -1.0f;
+
+        glm::vec3 rotationAxis =
+            glm::cross(defaultAxis, direction);
+
+        const float axisLength = glm::length(rotationAxis);
+        const float angle = std::acos(cosine);
+
+        glm::mat4 rotation(1.0f);
+
+        if (axisLength > 0.0001f)
+        {
+            rotation = glm::rotate(
+                glm::mat4(1.0f),
+                angle,
+                rotationAxis / axisLength
+            );
+        }
+        else if (cosine < 0.0f)
+        {
+            rotation = glm::rotate(
+                glm::mat4(1.0f),
+                PI,
+                glm::vec3(1.0f, 0.0f, 0.0f)
+            );
+        }
+
+        ScenePart part;
+        part.name = name;
+        part.mesh = makeCylinder(radius, color);
+
+        part.transform =
+            glm::translate(glm::mat4(1.0f),
+                           (start + end) * 0.5f) *
+            rotation *
+            glm::scale(glm::mat4(1.0f),
+                       glm::vec3(1.0f, length, 1.0f));
+
+        parts.push_back(part);
+    };
 
     // Add a simple face looking towards the camera (+Z direction).
     auto addFaceDetails = [&](const std::string& prefix,
@@ -367,16 +426,151 @@ std::vector<ScenePart> createStageGeometry()
 
     addCylinder("Right Cymbal Mount", 0.045f, 0.12f,
                 metalColor, glm::vec3(-1.80f, 1.86f, -2.0f));
+    // ------------------------------------------------------------
+    // 5A. DRUMMER
+    // ------------------------------------------------------------
+    // Seated drummer, positioned behind the existing drum kit.
+    const glm::vec3 drummerSkin(0.85f, 0.62f, 0.45f);
+    const glm::vec3 drummerShirt(0.10f, 0.12f, 0.17f);
+    const glm::vec3 drummerPants(0.055f, 0.06f, 0.075f);
+    const glm::vec3 drummerHair(0.035f, 0.025f, 0.022f);
+    const glm::vec3 drumStickColor(0.72f, 0.48f, 0.25f);
 
+    // Drum throne.
+    addCylinder("Drummer Stool Base", 0.24f, 0.06f,
+                metalColor, glm::vec3(-3.0f, 0.10f, -3.35f));
+    addCylinder("Drummer Stool Stem", 0.045f, 0.75f,
+                metalColor, glm::vec3(-3.0f, 0.50f, -3.35f));
+    addCylinder("Drummer Stool Seat", 0.30f, 0.10f,
+                glm::vec3(0.045f, 0.045f, 0.055f),
+                glm::vec3(-3.0f, 0.90f, -3.35f));
+
+    // Torso, neck, head and face.
+    // One solid rounded drummer torso
+    addSphere("Drummer Torso",
+            drummerShirt,
+            glm::vec3(-3.0f, 1.48f, -3.35f),
+            glm::vec3(0.40f, 0.48f, 0.25f));
+    addSphere("Drummer Neck", drummerSkin,
+              glm::vec3(-3.0f, 1.91f, -3.34f),
+              glm::vec3(0.13f, 0.13f, 0.13f));
+    addSphere("Drummer Head", drummerSkin,
+              glm::vec3(-3.0f, 2.18f, -3.35f),
+              glm::vec3(0.25f, 0.29f, 0.23f));
+    addFaceDetails("Drummer", -3.0f, 2.18f, -3.35f, drummerHair);
+
+    // Bent legs in a seated position.
+    const glm::vec3 drummerLeftHip(-3.22f, 1.12f, -3.28f);
+    const glm::vec3 drummerLeftKnee(-3.66f, 0.70f, -2.78f);
+    const glm::vec3 drummerLeftAnkle(-3.78f, 0.16f, -2.28f);
+    const glm::vec3 drummerRightHip(-2.78f, 1.12f, -3.28f);
+    const glm::vec3 drummerRightKnee(-2.34f, 0.70f, -2.78f);
+    const glm::vec3 drummerRightAnkle(-2.22f, 0.16f, -2.28f);
+
+    addLimb("Drummer Left Thigh", drummerLeftHip, drummerLeftKnee,
+            0.22f, 0.22f, drummerPants);
+    addLimb("Drummer Left Shin", drummerLeftKnee, drummerLeftAnkle,
+            0.17f, 0.18f, drummerPants);
+    addLimb("Drummer Right Thigh", drummerRightHip, drummerRightKnee,
+            0.22f, 0.22f, drummerPants);
+    addLimb("Drummer Right Shin", drummerRightKnee, drummerRightAnkle,
+            0.17f, 0.18f, drummerPants);
+    addBox("Drummer Left Shoe", glm::vec3(0.30f, 0.14f, 0.42f),
+           glm::vec3(0.025f, 0.025f, 0.035f),
+           glm::vec3(-3.78f, 0.10f, -2.16f));
+    addBox("Drummer Right Shoe", glm::vec3(0.30f, 0.14f, 0.42f),
+           glm::vec3(0.025f, 0.025f, 0.035f),
+           glm::vec3(-2.22f, 0.10f, -2.16f));
+
+    // ------------------------------------------------------------
+// ------------------------------------------------------------
+// DRUMMER ARMS - 3D CONNECTED ARMS
+// ------------------------------------------------------------
+
+// Left arm joints
+const glm::vec3 drummerLeftShoulder(-3.34f, 1.78f, -3.22f);
+const glm::vec3 drummerLeftElbow(-3.60f, 1.63f, -2.76f);
+const glm::vec3 drummerLeftWrist(-3.75f, 1.72f, -2.30f);
+
+// Right arm joints
+const glm::vec3 drummerRightShoulder(-2.66f, 1.78f, -3.22f);
+const glm::vec3 drummerRightElbow(-2.40f, 1.63f, -2.76f);
+const glm::vec3 drummerRightWrist(-2.25f, 1.72f, -2.30f);
+
+
+// Upper arms
+addLimb3D("Drummer Left Upper Arm",
+          drummerLeftShoulder,
+          drummerLeftElbow,
+          0.095f, drummerSkin);
+
+addLimb3D("Drummer Right Upper Arm",
+          drummerRightShoulder,
+          drummerRightElbow,
+          0.095f, drummerSkin);
+
+
+// Elbow joints
+addSphere("Drummer Left Elbow",
+          drummerSkin,
+          drummerLeftElbow,
+          glm::vec3(0.105f, 0.105f, 0.105f));
+
+addSphere("Drummer Right Elbow",
+          drummerSkin,
+          drummerRightElbow,
+          glm::vec3(0.105f, 0.105f, 0.105f));
+
+
+// Forearms
+addLimb3D("Drummer Left Forearm",
+          drummerLeftElbow,
+          drummerLeftWrist,
+          0.078f, drummerSkin);
+
+addLimb3D("Drummer Right Forearm",
+          drummerRightElbow,
+          drummerRightWrist,
+          0.078f, drummerSkin);
+
+
+// Hands
+addSphere("Drummer Left Hand",
+          drummerSkin,
+          drummerLeftWrist,
+          glm::vec3(0.105f, 0.09f, 0.10f));
+
+addSphere("Drummer Right Hand",
+          drummerSkin,
+          drummerRightWrist,
+          glm::vec3(0.105f, 0.09f, 0.10f));
+
+
+// ------------------------------------------------------------
+// DRUMSTICKS
+// ------------------------------------------------------------
+
+// Left stick: directed towards the left cymbal
+addLimb3D("Drummer Left Drumstick",
+          drummerLeftWrist,
+          glm::vec3(-4.25f, 1.82f, -1.78f),
+          0.018f, drumStickColor);
+
+// Right stick: directed towards the right cymbal
+addLimb3D("Drummer Right Drumstick",
+          drummerRightWrist,
+          glm::vec3(-1.75f, 1.82f, -1.78f),
+          0.018f, drumStickColor);
     // ------------------------------------------------------------
     // 6. ELECTRIC GUITAR
     // ------------------------------------------------------------
 
-    const glm::vec3 guitarColor(0.78f, 0.19f, 0.035f);
-    const glm::vec3 guitarDark(0.15f, 0.075f, 0.035f);
+    const glm::vec3 guitarColor(0.88f, 0.17f, 0.045f);
+    const glm::vec3 guitarDark(0.07f, 0.055f, 0.045f);
     const glm::vec3 guitarNeckColor(0.36f, 0.20f, 0.095f);
     const glm::vec3 guitarBoardColor(0.10f, 0.065f, 0.045f);
-    const glm::vec3 guitarMetal(0.72f, 0.74f, 0.77f);
+    const glm::vec3 guitarMetal(0.78f, 0.79f, 0.82f);
+    const glm::vec3 guitarPickguardColor(0.80f, 0.77f, 0.68f);
 
     // The guitar is in front of the guitarist (positive Z), so it is
     // visible instead of being hidden inside the character's torso.
@@ -385,27 +579,39 @@ std::vector<ScenePart> createStageGeometry()
 
     // Two rounded bouts and a central waist create a recognizable
     // double-cutaway electric-guitar silhouette from simple spheres.
-    addSphere("Guitar Lower Body",
-              guitarColor,
-              glm::vec3(3.0f, 0.94f, guitarZ),
-              glm::vec3(0.40f, 0.43f, 0.14f));
+    // Lower body
+addSphere("Guitar Lower Body",
+          guitarColor,
+          glm::vec3(3.0f, 0.94f, guitarZ),
+          glm::vec3(0.35f, 0.39f, 0.13f));
 
-    addSphere("Guitar Upper Body",
-              guitarColor,
-              glm::vec3(3.0f, 1.30f, guitarZ),
-              glm::vec3(0.34f, 0.36f, 0.14f));
+// Upper body
+addSphere("Guitar Upper Body",
+          guitarColor,
+          glm::vec3(3.0f, 1.30f, guitarZ),
+          glm::vec3(0.30f, 0.33f, 0.125f));
 
-    addSphere("Guitar Body Waist",
-              guitarColor,
-              glm::vec3(3.0f, 1.12f, guitarZ + 0.005f),
-              glm::vec3(0.32f, 0.39f, 0.135f));
+// Narrow waist
+addSphere("Guitar Body Waist",
+          guitarColor,
+          glm::vec3(3.0f, 1.12f, guitarZ + 0.005f),
+          glm::vec3(0.245f, 0.37f, 0.115f));
+
+// Cream pickguard
+addSphere("Guitar Pickguard",
+          guitarPickguardColor,
+          glm::vec3(2.91f, 1.12f, 0.475f),
+          glm::vec3(0.15f, 0.25f, 0.025f));
+    // Upper and lower horns improve the electric-guitar silhouette.
+    addSphere("Guitar Upper Horn", guitarColor,
+              glm::vec3(3.25f, 1.48f, guitarZ),
+              glm::vec3(0.16f, 0.30f, 0.13f));
+    addSphere("Guitar Lower Horn", guitarColor,
+              glm::vec3(2.75f, 1.47f, guitarZ),
+              glm::vec3(0.15f, 0.27f, 0.13f));
 
     // Dark pickguard on the front face.
-    addSphere("Guitar Pickguard",
-              guitarDark,
-              glm::vec3(2.91f, 1.12f, 0.475f),
-              glm::vec3(0.17f, 0.27f, 0.025f));
-
+    
     // Neck and dark fretboard, tilted upward to the right.
     const glm::vec3 neckCenter(3.35f, 2.05f, guitarZ);
 
@@ -443,7 +649,7 @@ std::vector<ScenePart> createStageGeometry()
         );
 
         addRotatedBox("Guitar String " + std::to_string(i + 1),
-                      glm::vec3(0.008f, 1.82f, 0.008f),
+                      glm::vec3(0.005f, 1.82f, 0.005f),
                       guitarMetal,
                       stringPosition,
                       guitarAngle);
@@ -484,16 +690,54 @@ std::vector<ScenePart> createStageGeometry()
                   guitarDark,
                   glm::vec3(3.0f, 1.05f, 0.49f),
                   0.0f);
+    // Middle pickup and six pole pieces on each pickup.
+    addRotatedBox("Guitar Middle Pickup",
+                  glm::vec3(0.22f, 0.065f, 0.035f),
+                  guitarDark,
+                  glm::vec3(3.0f, 1.22f, 0.49f),
+                  0.0f);
+    for (int pickup = 0; pickup < 3; ++pickup)
+    {
+        const float pickupY = 1.39f - static_cast<float>(pickup) * 0.17f;
+        for (int pole = 0; pole < 6; ++pole)
+        {
+            const float poleX = 2.925f + static_cast<float>(pole) * 0.03f;
+            addSphere("Guitar Pickup Pole", guitarMetal,
+                      glm::vec3(poleX, pickupY, 0.516f),
+                      glm::vec3(0.009f, 0.009f, 0.009f));
+        }
+    }
+
+    // Six small bridge saddles and a pickup selector switch.
+    for (int saddle = 0; saddle < 6; ++saddle)
+    {
+        const float saddleX = 2.93f + static_cast<float>(saddle) * 0.028f;
+        addSphere("Guitar Bridge Saddle", guitarMetal,
+                  glm::vec3(saddleX, 0.88f, 0.518f),
+                  glm::vec3(0.012f, 0.025f, 0.012f));
+    }
+    addRotatedBox("Guitar Pickup Selector",
+                  glm::vec3(0.025f, 0.16f, 0.025f),
+                  guitarMetal,
+                  glm::vec3(2.76f, 1.22f, 0.515f),
+                  -18.0f);
 
     addSphere("Guitar Control Knob 1",
-              guitarMetal,
+              guitarPickguardColor,
               glm::vec3(2.78f, 0.91f, 0.50f),
               glm::vec3(0.045f, 0.045f, 0.025f));
 
     addSphere("Guitar Control Knob 2",
-              guitarMetal,
+              guitarPickguardColor,
               glm::vec3(2.84f, 0.82f, 0.50f),
               glm::vec3(0.045f, 0.045f, 0.025f));
+    addSphere("Guitar Control Knob 3",
+              guitarPickguardColor,
+              glm::vec3(2.96f, 0.80f, 0.50f),
+              glm::vec3(0.045f, 0.045f, 0.025f));
+    addSphere("Guitar Output Jack Plate", guitarMetal,
+              glm::vec3(3.27f, 0.91f, 0.49f),
+              glm::vec3(0.055f, 0.055f, 0.018f));
 
     // Tuning pegs on both sides of the headstock.
     for (int i = 0; i < 3; ++i)
@@ -616,6 +860,12 @@ std::vector<ScenePart> createStageGeometry()
            glm::vec3(0.65f, 0.90f, 0.35f),
            guitaristShirt,
            glm::vec3(3.0f, 1.45f, 0.0f));
+    // Shoulder strap placed slightly in front of the guitarist's torso.
+    addLimb("Guitar Shoulder Strap",
+            glm::vec3(3.34f, 2.05f, 0.18f),
+            glm::vec3(2.70f, 0.82f, 0.18f),
+            0.085f, 0.035f,
+            glm::vec3(0.035f, 0.035f, 0.045f));
 
     // Legs and shoes.
     addBox("Guitarist Left Leg",
