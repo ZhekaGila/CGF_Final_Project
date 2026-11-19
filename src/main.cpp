@@ -734,6 +734,12 @@ int main()
     int lightingMode = 1; // 1 colorful, 2 warm, 3 cool
     float showSpeed = 1.0f;
     float showTime = 0.0f;
+
+    // BPM synchronized lighting
+    float musicBPM = 120.0f;
+    float beatTime = 0.0f;
+    float beatPulse = 0.0f;
+
     float wowRemaining = 0.0f;
     float wowElapsed = 0.0f;
     constexpr float wowDuration = 5.0f;
@@ -1034,6 +1040,20 @@ int main()
         }
 
         showTime += deltaTime * showSpeed;
+        // Calculate beat timing from music playback position
+        if (audio.isPlaying())
+        {
+            beatTime = audio.getPlaybackTimeSeconds() * musicBPM / 60.0f;
+
+            float beatPhase = beatTime - std::floor(beatTime);
+
+            // Strong pulse at the beginning of each beat, then smooth decay
+            beatPulse = std::exp(-beatPhase * 6.0f);
+        }
+        else
+        {
+            beatPulse = 0.0f;
+        }
 
         if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
             glfwSetWindowShouldClose(window, GLFW_TRUE);
@@ -1117,6 +1137,8 @@ int main()
                 float breathe = 0.85f + 0.15f * std::sin(time * 3.0f + phase);
                 glm::vec3 wowColor = wowPalette[i] * (2.3f * breathe);
                 lights[i].color = glm::mix(lights[i].color, wowColor, wowStrength);
+                // Beat synchronized brightness pulse
+                lights[i].color *= (1.0f + beatPulse * 0.65f);
             }
         }
 
@@ -1184,6 +1206,8 @@ int main()
         if (wowStrength > 0.0f)
             lights[4].color = glm::mix(lights[4].color,
                                        glm::vec3(2.3f, 2.0f, 1.6f), wowStrength);
+        // Beat synchronized brightness pulse for central spotlight
+        lights[4].color *= (1.0f + beatPulse * 0.65f);
 
         int spotlightNumbers[4] = {1, 2, 4, 5};
 
