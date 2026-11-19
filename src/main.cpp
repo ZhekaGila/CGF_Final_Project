@@ -8,6 +8,8 @@
 #include "audience/Audience.h"
 #include "Camera.h"
 #include "audio/AudioManager.h"
+#include "TextRenderer.h"
+#include "ConfettiEffect.h"
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -493,7 +495,33 @@ int main()
     }
 
     std::cout << "OpenGL initialized successfully!" << std::endl;
+    // Initialize FPS text renderer.
+    TextRenderer textRenderer;
+    // Initialize confetti effect.
+    ConfettiEffect confetti;
 
+    if (!confetti.initialize())
+    {
+        std::cerr << "Confetti initialization failed!"
+                  << std::endl;
+    }
+
+#ifdef _WIN32
+    const std::string fontPath = "C:/Windows/Fonts/arial.ttf";
+#elif defined(__APPLE__)
+    const std::string fontPath =
+        "/System/Library/Fonts/Supplemental/Arial.ttf";
+#else
+    const std::string fontPath =
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf";
+#endif
+
+    if (!textRenderer.initialize(fontPath, 24))
+    {
+        std::cerr << "FPS HUD initialization failed. "
+                  << "The 3D scene will continue without HUD."
+                  << std::endl;
+    }
     // Enable depth testing
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
@@ -658,6 +686,7 @@ int main()
     float audienceTime = 0.0f;
     double lastFrameTime = glfwGetTime(), fpsStart = lastFrameTime;
     int fpsFrames = 0;
+    int currentFPS = 0;
     std::cout << "Camera: WASD move | Q/E down/up | Shift fast | Mouse look | Scroll zoom\n";
     std::cout << "Audience: P pause | J energy | N density | H hide | Esc exit\n";
 
@@ -752,6 +781,7 @@ int main()
     bool previousSpace = false;
 
     bool previousMusic = false;
+    bool previousConfetti = false;
     bool previousVolumePlus = false;
     bool previousVolumeMinus = false;
     std::cout << "Lighting: 1 colorful | 2 warm | 3 cool | [ ] speed | R reset | Space WOW\n";
@@ -791,6 +821,7 @@ int main()
         const double now = glfwGetTime();
         const float deltaTime = static_cast<float>(now - lastFrameTime);
         lastFrameTime = now;
+        confetti.update(deltaTime);
 
         const bool fast =
             glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS ||
@@ -864,6 +895,16 @@ int main()
                 std::cout << "Audio is not initialized. Check music file."
                           << std::endl;
             }
+        }
+
+        // Confetti effect toggle.
+        if (pressed(GLFW_KEY_K, previousConfetti))
+        {
+            confetti.setEnabled(!confetti.isEnabled());
+
+            std::cout << "Confetti: "
+                      << (confetti.isEnabled() ? "ON" : "OFF")
+                      << std::endl;
         }
 
         // --------------------------------------------------------
@@ -1062,9 +1103,10 @@ int main()
         ++fpsFrames;
         if (now - fpsStart >= 0.5)
         {
+            currentFPS = static_cast<int>(fpsFrames / (now - fpsStart));
+
             std::ostringstream title;
-            title << "Concert Stage | FPS " << static_cast<int>(fpsFrames / (now - fpsStart))
-                  << " | Audience " << (audienceVisible ? audience.count() : 0)
+            title << "Concert Stage | FPS " << currentFPS << " | Audience " << (audienceVisible ? audience.count() : 0)
                   << (audiencePaused ? " paused" : (audienceEnergetic ? " energetic" : " calm"))
                   << " | Light " << lightingMode << " | Speed " << showSpeed << "x"
                   << " | Music " << (audio.isPlaying() ? "ON" : "OFF")
@@ -1402,7 +1444,25 @@ int main()
 
             glDepthMask(GL_TRUE);
             glDisable(GL_BLEND);
+            // Render confetti over the concert stage.
+            confetti.render(view, projection);
         }
+        // Draw FPS HUD over the 3D scene.
+
+        if (textRenderer.isInitialized() && width > 0 && height > 0)
+        {
+            textRenderer.renderText(
+                "FPS: " + std::to_string(currentFPS),
+                20.0f,
+                static_cast<float>(height) - 38.0f,
+                1.0f,
+                glm::vec3(1.0f, 1.0f, 1.0f),
+                width,
+                height);
+        }
+
+        glfwSwapBuffers(window);
+        glfwPollEvents();
 
         glfwSwapBuffers(window);
         glfwPollEvents();
@@ -1415,6 +1475,9 @@ int main()
     audience.release();
     deleteGpuMeshes(gpuMeshes);
     audio.shutdown();
+
+    confetti.cleanup();
+    textRenderer.cleanup();
 
     glDeleteBuffers(1, &glowVBO);
     glDeleteVertexArrays(1, &glowVAO);
