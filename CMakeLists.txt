@@ -59,10 +59,12 @@ add_executable(ConcertStage
     src/main.cpp
     src/Camera.cpp
     src/audience/Audience.cpp
+    src/audio/AudioManager.cpp
 )
 
 target_include_directories(ConcertStage PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/external/miniaudio
 )
 
 # Link libraries
@@ -76,4 +78,5 @@ target_link_libraries(ConcertStage PRIVATE
 # Resolve shaders from any working directory (Terminal, IDE, build folder).
 target_compile_definitions(ConcertStage PRIVATE
     CGF_SHADER_DIR="${CMAKE_CURRENT_SOURCE_DIR}/shaders"
+    CGF_ASSET_DIR="${CMAKE_CURRENT_SOURCE_DIR}/assets"
 )
