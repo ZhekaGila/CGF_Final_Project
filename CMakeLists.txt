@@ -11,6 +11,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # Find required libraries
 find_package(glfw3 3.3 REQUIRED)
 find_package(glm CONFIG REQUIRED)
+find_package(Freetype REQUIRED)
 
 # Find OpenGL
 if(APPLE)
@@ -60,6 +61,8 @@ add_executable(ConcertStage
     src/Camera.cpp
     src/audience/Audience.cpp
     src/audio/AudioManager.cpp
+    src/TextRenderer.cpp
+    src/ConfettiEffect.cpp
 )
 
 target_include_directories(ConcertStage PRIVATE
@@ -73,6 +76,7 @@ target_link_libraries(ConcertStage PRIVATE
     glad
     OpenGL::GL
     stage_geometry
+    Freetype::Freetype
 )
 
 # Resolve shaders from any working directory (Terminal, IDE, build folder).
