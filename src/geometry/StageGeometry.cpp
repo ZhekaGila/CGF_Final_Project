@@ -297,6 +297,29 @@ std::vector<ScenePart> createStageGeometry()
         stageMetal,
         glm::vec3(8.0f, -0.06f, 0.0f));    
 
+    const glm::vec3 ledColor(0.05f, 0.35f, 0.65f);
+
+    addBox("Stage LED Front",
+        glm::vec3(15.9f, 0.045f, 0.06f),
+        ledColor,
+        glm::vec3(0.0f, -0.18f, 5.18f));
+
+    addBox("Stage LED Left",
+        glm::vec3(0.06f, 0.045f, 9.9f),
+        ledColor,
+        glm::vec3(-8.08f, -0.18f, 0.0f));
+
+    addBox("Stage LED Right",
+        glm::vec3(0.06f, 0.045f, 9.9f),
+        ledColor,
+        glm::vec3(8.08f, -0.18f, 0.0f));
+
+    addBox("Stage LED Bottom",
+        glm::vec3(15.9f, 0.035f, 0.06f),
+        ledColor,
+        glm::vec3(0.0f, -1.32f, 5.18f));
+
+
     addBox("Front Podium",
            glm::vec3(5.0f, 0.3f, 1.5f),
            stageColor,

@@ -196,6 +196,66 @@ GLuint createGlowShaderProgram()
 }
 
 
+GLuint createLedGlowShaderProgram()
+{
+    std::string vertexSource =
+        loadShaderSource("shaders/led_glow.vert");
+
+    std::string fragmentSource =
+        loadShaderSource("shaders/led_glow.frag");
+
+    if (vertexSource.empty() || fragmentSource.empty())
+    {
+        std::cerr << "Could not load glow shaders!" << std::endl;
+        return 0;
+    }
+
+    GLuint vertexShader = compileShader(
+        GL_VERTEX_SHADER,
+        vertexSource.c_str());
+
+    if (vertexShader == 0)
+        return 0;
+
+    GLuint fragmentShader = compileShader(
+        GL_FRAGMENT_SHADER,
+        fragmentSource.c_str());
+
+    if (fragmentShader == 0)
+    {
+        glDeleteShader(vertexShader);
+        return 0;
+    }
+
+    GLuint program = glCreateProgram();
+
+    glAttachShader(program, vertexShader);
+    glAttachShader(program, fragmentShader);
+    glLinkProgram(program);
+
+    GLint success = GL_FALSE;
+    glGetProgramiv(program, GL_LINK_STATUS, &success);
+
+    if (success != GL_TRUE)
+    {
+        char infoLog[1024];
+        glGetProgramInfoLog(
+            program, 1024, nullptr, infoLog);
+
+        std::cerr << "Glow shader linking failed: "
+                  << infoLog << std::endl;
+
+        glDeleteProgram(program);
+        program = 0;
+    }
+
+    glDeleteShader(vertexShader);
+    glDeleteShader(fragmentShader);
+
+    return program;
+}
+
+
 struct GpuMesh
 {
     GLuint VAO = 0;
@@ -504,6 +564,14 @@ int main()
     if (glowShaderProgram == 0)
     {
         std::cerr << "Could not create glow shader program!" << std::endl;
+        return -1;
+    }
+
+    GLuint ledGlowShaderProgram = createLedGlowShaderProgram();
+
+    if (ledGlowShaderProgram == 0)
+    {
+        std::cerr << "Could not create LED glow shader!" << std::endl;
         return -1;
     }
 
@@ -1326,6 +1394,11 @@ int main()
 
                 glm::vec3 emissionColor(0.0f);
 
+                if (mesh.name.find("Stage LED") == 0)
+                {
+                    emissionColor = glm::vec3(0.02f, 0.65f, 0.95f);
+                }
+
                 int bulbNumbers[5] = {1, 2, 4, 5, 3};
 
                 for (int i = 0; i < 5; i++)
@@ -1404,14 +1477,90 @@ int main()
                 glDrawArrays(GL_TRIANGLES, 0, 6);
             }
 
+            glUseProgram(ledGlowShaderProgram);
+
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+
+            glUniformMatrix4fv(
+                glGetUniformLocation(ledGlowShaderProgram, "uView"),
+                1, GL_FALSE, glm::value_ptr(view));
+
+            glUniformMatrix4fv(
+                glGetUniformLocation(ledGlowShaderProgram, "uProjection"),
+                1, GL_FALSE, glm::value_ptr(projection));
+
+            glm::vec3 ledGlowColor(0.02f, 0.65f, 0.95f);
+
+            glUniform3fv(
+                glGetUniformLocation(ledGlowShaderProgram, "uColor"),
+                1, glm::value_ptr(ledGlowColor));
+
+            float ledIntensity = 0.85f + wowStrength * 0.3f;
+
+            glUniform1f(
+                glGetUniformLocation(ledGlowShaderProgram, "uIntensity"),
+                ledIntensity);
+
+            glBindVertexArray(glowVAO);
+
+            auto drawLedGlow = [&](glm::vec3 center,
+                                glm::vec3 axis,
+                                float length,
+                                float height)
+            {
+                center += stageOffset;
+
+                glUniform3fv(
+                    glGetUniformLocation(ledGlowShaderProgram, "uCenter"),
+                    1, glm::value_ptr(center));
+
+                glUniform3fv(
+                    glGetUniformLocation(ledGlowShaderProgram, "uAxis"),
+                    1, glm::value_ptr(axis));
+
+                glUniform1f(
+                    glGetUniformLocation(ledGlowShaderProgram, "uLength"),
+                    length);
+
+                glUniform1f(
+                    glGetUniformLocation(ledGlowShaderProgram, "uHeight"),
+                    height);
+
+                glDrawArrays(GL_TRIANGLES, 0, 6);
+            };
+
+            drawLedGlow(
+                {0.0f, -0.18f, 5.22f},
+                {1.0f, 0.0f, 0.0f},
+                16.1f,
+                0.65f);
+
+            drawLedGlow(
+                {0.0f, -1.32f, 5.22f},
+                {1.0f, 0.0f, 0.0f},
+                16.1f,
+                0.50f);
+
+            drawLedGlow(
+                {-8.13f, -0.18f, 0.0f},
+                {0.0f, 0.0f, 1.0f},
+                10.1f,
+                0.65f);
+
+            drawLedGlow(
+                {8.13f, -0.18f, 0.0f},
+                {0.0f, 0.0f, 1.0f},
+                10.1f,
+                0.65f);
+
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
             glBindVertexArray(0);
 
             glDepthMask(GL_TRUE);
             glDisable(GL_BLEND);
-            // Render confetti over the concert stage.
             confetti.render(view, projection);
         }
-        // Draw FPS HUD over the 3D scene.
 
         if (textRenderer.isInitialized() && width > 0 && height > 0)
         {
@@ -1444,6 +1593,7 @@ int main()
     glDeleteVertexArrays(1, &glowVAO);
 
     glDeleteProgram(glowShaderProgram);
+    glDeleteProgram(ledGlowShaderProgram);
     glDeleteProgram(shaderProgram);
 
     glfwDestroyWindow(window);
