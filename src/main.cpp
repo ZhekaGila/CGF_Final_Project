@@ -1,3 +1,7 @@
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+
 #include <glad/glad.h>
 
 #define GLFW_INCLUDE_NONE
@@ -25,9 +29,6 @@
 #include <cmath>
 #include <algorithm>
 
-// ============================================================
-// SHADERS
-// ============================================================
 
 std::string loadShaderSource(const std::string &filePath)
 {
@@ -52,9 +53,6 @@ std::string loadShaderSource(const std::string &filePath)
     return buffer.str();
 }
 
-// ============================================================
-// SHADER COMPILATION
-// ============================================================
 
 GLuint compileShader(GLenum type, const char *source)
 {
@@ -83,9 +81,6 @@ GLuint compileShader(GLenum type, const char *source)
     return shader;
 }
 
-// ============================================================
-// SHADER PROGRAM
-// ============================================================
 
 GLuint createShaderProgram()
 {
@@ -200,9 +195,6 @@ GLuint createGlowShaderProgram()
     return program;
 }
 
-// ============================================================
-// GPU MESH
-// ============================================================
 
 struct GpuMesh
 {
@@ -218,9 +210,6 @@ struct GpuMesh
     glm::mat4 originalModel = glm::mat4(1.0f);
 };
 
-// ============================================================
-// UPLOAD MESH TO GPU
-// ============================================================
 
 GpuMesh uploadMesh(const cgf::ScenePart &part)
 {
@@ -240,7 +229,6 @@ GpuMesh uploadMesh(const cgf::ScenePart &part)
 
     glBindVertexArray(gpuMesh.VAO);
 
-    // Upload vertex data
     glBindBuffer(GL_ARRAY_BUFFER, gpuMesh.VBO);
 
     glBufferData(
@@ -250,7 +238,6 @@ GpuMesh uploadMesh(const cgf::ScenePart &part)
         part.mesh.vertices.data(),
         GL_STATIC_DRAW);
 
-    // Upload index data
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, gpuMesh.EBO);
 
     glBufferData(
@@ -260,7 +247,6 @@ GpuMesh uploadMesh(const cgf::ScenePart &part)
         part.mesh.indices.data(),
         GL_STATIC_DRAW);
 
-    // Position: location 0
     glVertexAttribPointer(
         0,
         3,
@@ -271,7 +257,6 @@ GpuMesh uploadMesh(const cgf::ScenePart &part)
 
     glEnableVertexAttribArray(0);
 
-    // Normal: location 1
     glVertexAttribPointer(
         1,
         3,
@@ -282,7 +267,6 @@ GpuMesh uploadMesh(const cgf::ScenePart &part)
 
     glEnableVertexAttribArray(1);
 
-    // UV: location 2
     glVertexAttribPointer(
         2,
         2,
@@ -293,7 +277,6 @@ GpuMesh uploadMesh(const cgf::ScenePart &part)
 
     glEnableVertexAttribArray(2);
 
-    // Color: location 3
     glVertexAttribPointer(
         3,
         3,
@@ -352,10 +335,8 @@ void animateCentralSpotlight(
         return;
     }
 
-    // Central spotlight mounting point
     glm::vec3 pivot(0.0f, 5.5f, -2.5f);
 
-    // Calculate rotation angles from light direction
     float angleZ = std::atan2(
         direction.x,
         -direction.y);
@@ -389,9 +370,6 @@ void animateCentralSpotlight(
     mesh.model = parentTransform * mesh.originalModel;
 }
 
-// ============================================================
-// DELETE GPU RESOURCES
-// ============================================================
 
 void deleteGpuMeshes(std::vector<GpuMesh> &meshes)
 {
@@ -405,9 +383,6 @@ void deleteGpuMeshes(std::vector<GpuMesh> &meshes)
     meshes.clear();
 }
 
-// ============================================================
-// MAIN
-// ============================================================
 
 struct SpotLight
 {
@@ -416,14 +391,12 @@ struct SpotLight
     glm::vec3 color;
 };
 
-// Participant 4: smooth interpolation and camera view presets.
 float smoothStep01(float value)
 {
     value = std::max(0.0f, std::min(1.0f, value));
     return value * value * (3.0f - 2.0f * value);
 }
 
-// Calculate yaw and pitch for a camera at position looking at target.
 void pointCameraAt(Camera &camera, const glm::vec3 &position,
                    const glm::vec3 &target)
 {
@@ -435,9 +408,6 @@ void pointCameraAt(Camera &camera, const glm::vec3 &position,
 
 int main()
 {
-    // --------------------------------------------------------
-    // 1. INITIALIZE GLFW
-    // --------------------------------------------------------
 
     if (!glfwInit())
     {
@@ -445,7 +415,6 @@ int main()
         return -1;
     }
 
-    // Request OpenGL 3.3 Core Profile
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
@@ -456,9 +425,6 @@ int main()
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
 
-    // --------------------------------------------------------
-    // 2. CREATE WINDOW
-    // --------------------------------------------------------
 
     GLFWwindow *window = glfwCreateWindow(
         1280,
@@ -479,9 +445,6 @@ int main()
 
     glfwSwapInterval(1);
 
-    // --------------------------------------------------------
-    // 3. INITIALIZE GLAD
-    // --------------------------------------------------------
 
     if (!gladLoadGLLoader(
             reinterpret_cast<GLADloadproc>(glfwGetProcAddress)))
@@ -495,9 +458,7 @@ int main()
     }
 
     std::cout << "OpenGL initialized successfully!" << std::endl;
-    // Initialize FPS text renderer.
     TextRenderer textRenderer;
-    // Initialize confetti effect.
     ConfettiEffect confetti;
 
     if (!confetti.initialize())
@@ -522,13 +483,9 @@ int main()
                   << "The 3D scene will continue without HUD."
                   << std::endl;
     }
-    // Enable depth testing
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
 
-    // --------------------------------------------------------
-    // 4. CREATE SHADER PROGRAM
-    // --------------------------------------------------------
 
     GLuint shaderProgram = createShaderProgram();
 
@@ -603,25 +560,19 @@ int main()
 
     GLint cameraPosLocation = glGetUniformLocation(shaderProgram, "uCameraPos");
 
-    // --------------------------------------------------------
-    // 5. CREATE STAGE GEOMETRY
-    // --------------------------------------------------------
 
     std::vector<cgf::ScenePart> scene = cgf::createStageGeometry();
 
     cgf::ScenePart audienceFloor;
     audienceFloor.name = "Audience floor";
-    audienceFloor.mesh = cgf::makeBox({16.0f, 0.2f, 14.0f}, {0.10f, 0.11f, 0.15f});
-    audienceFloor.transform = glm::translate(glm::mat4(1), {0.0f, -0.1f, 12.0f});
+    audienceFloor.mesh = cgf::makeBox({18.0f, 0.2f, 32.0f}, {0.10f, 0.11f, 0.15f});
+    audienceFloor.transform = glm::translate(glm::mat4(1), {0.0f, -0.15f, 10.0f});
     scene.push_back(audienceFloor);
 
     std::cout << "Stage geometry created!" << std::endl;
     std::cout << "Number of scene objects: "
               << scene.size() << std::endl;
 
-    // --------------------------------------------------------
-    // 6. UPLOAD GEOMETRY TO GPU
-    // --------------------------------------------------------
 
     std::vector<GpuMesh> gpuMeshes;
 
@@ -644,13 +595,9 @@ int main()
 
     std::cout << "All meshes uploaded!" << std::endl;
 
-    // --------------------------------------------------------
-    // 7. CAMERA
-    // --------------------------------------------------------
 
     cgf::Audience audience;
     audience.initialize();
-    // AUDIO SYSTEM
 
     AudioManager audio;
 
@@ -691,11 +638,10 @@ int main()
     std::cout << "Audience: P pause | J energy | N density | H hide | Esc exit\n";
 
     Camera camera(
-        glm::vec3(19.0f, 15.0f, 29.0f),
-        -129.6f,
-        -24.3f);
+        glm::vec3(0.0f, 6.0f, 24.0f),
+        -90.0f,
+        -10.0f);
 
-    // Camera modes: manual / automatic cinematic route.
     constexpr float pi = 3.14159265358979323846f;
     bool cinematicMode = false;
     float cinematicTime = 0.0f;
@@ -710,7 +656,7 @@ int main()
 
     auto resetCamera = [&]()
     {
-        camera = Camera(glm::vec3(19.0f, 15.0f, 29.0f), -129.6f, -24.3f);
+        camera = Camera(glm::vec3(0.0f, 6.0f, 24.0f),-90.0f,-10.0f);
         cinematicMode = false;
         cinematicTime = 0.0f;
         cinematicBlend = 0.0f;
@@ -759,12 +705,10 @@ int main()
                                   cam->processMouseScroll(static_cast<float>(yOffset));
                           });
 
-    // Participant 4: lighting modes, animation speed and Wow moment.
-    int lightingMode = 1; // 1 colorful, 2 warm, 3 cool
+    int lightingMode = 1; 
     float showSpeed = 1.0f;
     float showTime = 0.0f;
 
-    // BPM synchronized lighting
     float musicBPM = 120.0f;
     float beatTime = 0.0f;
     float beatPulse = 0.0f;
@@ -983,7 +927,7 @@ int main()
         {
             wowRemaining = 0.0f;
             wowElapsed = 0.0f;
-            switchToView({19.0f, 15.0f, 29.0f}, {0.0f, 1.5f, 6.0f});
+            switchToView({0.0f, 6.0f, 24.0f}, {0.0f, 2.0f, 0.0f});
         }
         const bool view2Fn = pressed(GLFW_KEY_F2, previousF2);
         const bool view2Num = pressed(GLFW_KEY_5, previous5);
@@ -1045,7 +989,7 @@ int main()
             const float orbit = std::max(0.0f, cinematicTime - 1.7f);
             const float theta = orbit * 0.18f;
             const glm::vec3 desiredPosition(
-                10.0f * std::cos(theta + 0.9f),
+                6.5f * std::cos(theta + 0.9f),
                 7.2f + 1.6f * std::sin(orbit * 0.35f),
                 17.0f + 6.0f * std::sin(theta + 0.9f));
             const glm::vec3 position = glm::mix(

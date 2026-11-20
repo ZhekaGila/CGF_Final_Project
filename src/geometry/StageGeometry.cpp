@@ -931,7 +931,39 @@ addSphere("Guitar Pickguard",
               skinColor, guitaristRightWrist,
               glm::vec3(0.105f, 0.10f, 0.085f));
 
+    const glm::vec3 clubWallColor(0.32f, 0.23f, 0.20f);
+
+    addBox("Club Left Wall",
+        glm::vec3(0.4f, 10.0f, 32.0f),
+        clubWallColor,
+        glm::vec3(-9.0f, 5.0f, 10.0f));
+
+    addBox("Club Right Wall",
+        glm::vec3(0.4f, 10.0f, 32.0f),
+        clubWallColor,
+        glm::vec3(9.0f, 5.0f, 10.0f));
+
+    addBox("Club Front Wall",
+        glm::vec3(18.0f, 10.0f, 0.4f),
+        clubWallColor,
+        glm::vec3(0.0f, 5.0f, -6.0f));
+
+    addBox("Club Rear Left Wall",
+        glm::vec3(7.5f, 10.0f, 0.4f),
+        clubWallColor,
+        glm::vec3(-5.25f, 5.0f, 26.0f));
+
+    addBox("Club Rear Right Wall",
+        glm::vec3(7.5f, 10.0f, 0.4f),
+        clubWallColor,
+        glm::vec3(5.25f, 5.0f, 26.0f));
+
+    addBox("Club Entrance Top",
+        glm::vec3(3.0f, 6.5f, 0.4f),
+        clubWallColor,
+        glm::vec3(0.0f, 6.75f, 26.0f));
+
     return parts;
 }
 
-} // namespace cgf
+}
