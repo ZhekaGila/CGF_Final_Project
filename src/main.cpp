@@ -563,6 +563,11 @@ int main()
 
     std::vector<cgf::ScenePart> scene = cgf::createStageGeometry();
 
+    const glm::vec3 stageOffset(0.0f, 1.5f, 0.0f);
+
+    const glm::mat4 stageTransform =
+        glm::translate(glm::mat4(1.0f), stageOffset);
+
     cgf::ScenePart audienceFloor;
     audienceFloor.name = "Audience floor";
     audienceFloor.mesh = cgf::makeBox({18.0f, 0.2f, 32.0f}, {0.10f, 0.11f, 0.15f});
@@ -1247,15 +1252,19 @@ int main()
 
             for (int i = 0; i < 5; i++)
             {
+
+                glm::vec3 worldLightPosition = lights[i].position + stageOffset;
+
                 std::string prefix =
                     "uLights[" + std::to_string(i) + "].";
+
 
                 glUniform3fv(
                     glGetUniformLocation(
                         shaderProgram,
                         (prefix + "position").c_str()),
                     1,
-                    glm::value_ptr(lights[i].position));
+                    glm::value_ptr(worldLightPosition));
 
                 glUniform3fv(
                     glGetUniformLocation(
@@ -1301,11 +1310,19 @@ int main()
 
             for (const GpuMesh &mesh : gpuMeshes)
             {
+                bool isEnvironment =
+                    mesh.name.find("Club ") == 0 ||
+                    mesh.name == "Audience floor";
+
+                glm::mat4 worldModel = isEnvironment
+                    ? mesh.model
+                    : stageTransform * mesh.model;
+
                 glUniformMatrix4fv(
                     modelLocation,
                     1,
                     GL_FALSE,
-                    glm::value_ptr(mesh.model));
+                    glm::value_ptr(worldModel));
 
                 glm::vec3 emissionColor(0.0f);
 
@@ -1367,12 +1384,15 @@ int main()
 
             for (int i = 0; i < 5; i++)
             {
+                glm::vec3 worldLightPosition =
+                    lights[i].position + stageOffset;
+
                 glUniform3fv(
                     glGetUniformLocation(
                         glowShaderProgram,
                         "uGlowPosition"),
                     1,
-                    glm::value_ptr(lights[i].position));
+                    glm::value_ptr(worldLightPosition));
 
                 glUniform3fv(
                     glGetUniformLocation(

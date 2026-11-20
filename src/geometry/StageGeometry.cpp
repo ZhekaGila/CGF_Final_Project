@@ -249,9 +249,9 @@ std::vector<ScenePart> createStageGeometry()
     const glm::vec3 stageColor(0.25f, 0.25f, 0.30f);
 
     addBox("Stage Floor",
-           glm::vec3(16.0f, 0.4f, 10.0f),
-           darkFloor,
-           glm::vec3(0.0f, -0.2f, 0.0f));
+        glm::vec3(16.0f, 1.9f, 10.0f),
+        darkFloor,
+        glm::vec3(0.0f, -0.95f, 0.0f));
 
     addBox("Front Podium",
            glm::vec3(5.0f, 0.3f, 1.5f),
