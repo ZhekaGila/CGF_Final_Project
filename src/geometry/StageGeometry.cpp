@@ -245,13 +245,57 @@ std::vector<ScenePart> createStageGeometry()
     // 1. STAGE FLOOR AND PODIUM
     // ------------------------------------------------------------
 
-    const glm::vec3 darkFloor(0.12f, 0.12f, 0.16f);
-    const glm::vec3 stageColor(0.25f, 0.25f, 0.30f);
+    const glm::vec3 darkFloor(0.16f, 0.17f, 0.20f);
+    const glm::vec3 stageColor(0.09f, 0.09f, 0.11f);
 
     addBox("Stage Floor",
         glm::vec3(16.0f, 1.9f, 10.0f),
         darkFloor,
         glm::vec3(0.0f, -0.95f, 0.0f));
+
+    const glm::vec3 stageMetal(0.48f, 0.50f, 0.55f);
+    const glm::vec3 stagePanel(0.08f, 0.08f, 0.10f);
+    const glm::vec3 stageFrame(0.28f, 0.30f, 0.34f);
+
+    addBox("Stage Upper Edge",
+        glm::vec3(16.1f, 0.12f, 0.15f),
+        stageMetal,
+        glm::vec3(0.0f, -0.06f, 5.0f));
+
+    addBox("Stage Lower Edge",
+        glm::vec3(16.1f, 0.12f, 0.15f),
+        stageMetal,
+        glm::vec3(0.0f, -1.44f, 5.0f));
+
+    for (int i = 0; i < 8; i++)
+    {
+        float x = -7.0f + i * 2.0f;
+
+        addBox("Stage Front Panel " + std::to_string(i),
+            glm::vec3(1.88f, 1.12f, 0.08f),
+            stagePanel,
+            glm::vec3(x, -0.75f, 5.05f));
+    }
+
+    for (int i = 0; i < 9; i++)
+    {
+        float x = -8.0f + i * 2.0f;
+
+        addBox("Stage Panel Frame " + std::to_string(i),
+            glm::vec3(0.08f, 1.30f, 0.12f),
+            stageFrame,
+            glm::vec3(x, -0.75f, 5.08f));
+    }
+
+    addBox("Stage Left Edge",
+        glm::vec3(0.12f, 0.12f, 10.0f),
+        stageMetal,
+        glm::vec3(-8.0f, -0.06f, 0.0f));
+
+    addBox("Stage Right Edge",
+        glm::vec3(0.12f, 0.12f, 10.0f),
+        stageMetal,
+        glm::vec3(8.0f, -0.06f, 0.0f));    
 
     addBox("Front Podium",
            glm::vec3(5.0f, 0.3f, 1.5f),
