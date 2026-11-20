@@ -1407,9 +1407,6 @@ int main()
 
         glfwSwapBuffers(window);
         glfwPollEvents();
-
-        glfwSwapBuffers(window);
-        glfwPollEvents();
     }
 
     // --------------------------------------------------------
