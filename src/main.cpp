@@ -1045,7 +1045,6 @@ int main()
             return edge;
         };
 
-        // Handle a key press only once.
         auto pressedState = [&](bool down, bool &previous)
         {
             const bool edge = down && !previous;
@@ -1085,7 +1084,6 @@ int main()
             }
         }
 
-        // Confetti effect toggle.
         if (pressed(GLFW_KEY_K, previousConfetti))
         {
             confetti.setEnabled(!confetti.isEnabled());
@@ -1108,7 +1106,6 @@ int main()
             glfwGetKey(window, GLFW_KEY_MINUS) == GLFW_PRESS ||
             glfwGetKey(window, GLFW_KEY_KP_SUBTRACT) == GLFW_PRESS;
 
-        // Increase volume by 5%.
         if (pressedState(plusDown, previousVolumePlus))
         {
             musicVolume = std::min(1.0f, musicVolume + 0.05f);
@@ -1121,7 +1118,6 @@ int main()
                       << "%" << std::endl;
         }
 
-        // Decrease volume by 5%.
         if (pressedState(minusDown, previousVolumeMinus))
         {
             musicVolume = std::max(0.0f, musicVolume - 0.05f);
@@ -1147,7 +1143,6 @@ int main()
             lightingMode = 2;
         if (pressed(GLFW_KEY_3, previous3))
             lightingMode = 3;
-        // Lighting show speed controls.
         if (pressed(GLFW_KEY_RIGHT_BRACKET, previousPlus))
             showSpeed = std::min(3.0f, showSpeed + 0.25f);
 
@@ -1155,7 +1150,6 @@ int main()
             showSpeed = std::max(0.25f, showSpeed - 0.25f);
         if (pressed(GLFW_KEY_R, previousReset))
             showSpeed = 1.0f;
-        // Reset camera and four useful demonstration viewpoints.
         if (pressed(GLFW_KEY_C, previousC))
         {
             wowRemaining = 0.0f;
@@ -1216,13 +1210,10 @@ int main()
             wowRemaining = std::max(0.0f, wowRemaining - deltaTime);
             wowElapsed += deltaTime;
         }
-        // Smooth fade-in/fade-out: no fast strobe flashes.
         float wowStrength = std::min(1.0f, std::min(wowElapsed / 0.45f,
                                                     wowRemaining / 0.85f));
         wowStrength = std::max(0.0f, wowStrength);
 
-        // Cinematic fly-over: smoothly approach the stage, then orbit to show
-        // the musicians and the crowd. Animation uses real time, not show speed.
         if (wowRemaining <= 0.0f && cinematicMode)
         {
             cinematicTime += deltaTime;
@@ -1243,8 +1234,6 @@ int main()
             pointCameraAt(camera, position, position + front);
         }
 
-        // Wow camera move: gently dolly toward the stage, lift up, then return
-        // to the exact same starting position after five seconds.
         if (wowRemaining > 0.0f)
         {
             const float progress = std::min(1.0f, wowElapsed / wowDuration);
@@ -1260,20 +1249,17 @@ int main()
         }
         else if (wowElapsed > 0.0f)
         {
-            // Restore original camera pose and resume cinematic movement if active.
             camera = wowStart;
             wowElapsed = 0.0f;
         }
 
         showTime += deltaTime * showSpeed;
-        // Calculate beat timing from music playback position
         if (audio.isPlaying())
         {
             beatTime = audio.getPlaybackTimeSeconds() * musicBPM / 60.0f;
 
             float beatPhase = beatTime - std::floor(beatTime);
 
-            // Strong pulse at the beginning of each beat, then smooth decay
             beatPulse = std::exp(-beatPhase * 6.0f);
         }
         else
@@ -1344,12 +1330,10 @@ int main()
 
             if (lightingMode == 2)
             {
-                // Warm, golden concert lighting.
                 lights[i].color = glm::vec3(1.0f, 0.55f + 0.12f * red, 0.16f + 0.10f * blue);
             }
             else if (lightingMode == 3)
             {
-                // Cool blue and violet lighting.
                 lights[i].color = glm::vec3(0.24f + 0.20f * red, 0.35f + 0.25f * green, 0.9f);
             }
             else
@@ -1358,13 +1342,11 @@ int main()
             }
             if (wowStrength > 0.0f)
             {
-                // Broad, intense colors instead of rapid barely visible flashes.
                 const glm::vec3 wowPalette[4] = {
                     {1.0f, 0.32f, 0.78f}, {0.25f, 0.85f, 1.0f}, {1.0f, 0.78f, 0.25f}, {0.55f, 0.35f, 1.0f}};
                 float breathe = 0.85f + 0.15f * std::sin(time * 3.0f + phase);
                 glm::vec3 wowColor = wowPalette[i] * (2.3f * breathe);
                 lights[i].color = glm::mix(lights[i].color, wowColor, wowStrength);
-                // Beat synchronized brightness pulse
                 lights[i].color *= (1.0f + beatPulse * 0.65f);
             }
         }
@@ -1593,18 +1575,22 @@ int main()
 
 
                 bool useBrickTexture =
-                    mesh.name.find("Club ") == 0 &&
-                    mesh.name.find("Wall") != std::string::npos;
+                    (mesh.name.find("Club ") == 0 &&
+                    mesh.name.find("Wall") != std::string::npos) ||
+                    mesh.name == "Club Entrance Top";
 
                 glUniform1i(
                     glGetUniformLocation(shaderProgram, "uUseTexture"),
                     useBrickTexture ? 1 : 0
                 );
 
-                glUniform2f(
-                    glGetUniformLocation(shaderProgram, "uTextureScale"),
-                    4.0f, 2.0f
-                );
+                glm::vec2 textureScale(4.0f, 2.0f);
+
+                if (mesh.name == "Club Entrance Top")
+                {
+                    textureScale = glm::vec2(1.0f, 2.0f);
+                }
+
 
                 glActiveTexture(GL_TEXTURE0);
                 glBindTexture(

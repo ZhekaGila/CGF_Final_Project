@@ -12,6 +12,22 @@ uniform sampler2D uTexture;
 uniform bool uUseTexture;
 uniform vec2 uTextureScale;
 
+vec3 getBaseColor()
+{
+    if (!uUseTexture)
+        return vColor;
+
+    vec3 n = normalize(vNormal);
+
+    float horizontal = abs(n.x) > abs(n.z)
+        ? vWorldPos.z
+        : vWorldPos.x;
+
+    vec2 brickUV = vec2(horizontal, vWorldPos.y) * 0.3;
+
+    return texture(uTexture, brickUV).rgb;
+}
+
 out vec4 FragColor;
 
 uniform vec3 uCameraPos;
@@ -39,10 +55,7 @@ vec3 calculateSpotLight(
     vec3 lightDir = normalize(toLight);
 
     float diff = max(dot(normal, lightDir), 0.0);
-    vec3 baseColor = uUseTexture
-    ? texture(uTexture, vUV * uTextureScale).rgb
-    : vColor;
-
+    vec3 baseColor = getBaseColor();
     vec3 diffuse = diff * baseColor * light.color;
 
     vec3 halfwayDir = normalize(lightDir + viewDir);
@@ -86,9 +99,7 @@ void main()
     vec3 normal = normalize(vNormal);
     vec3 viewDir = normalize(uCameraPos - vWorldPos);
 
-    vec3 baseColor = uUseTexture
-    ? texture(uTexture, vUV * uTextureScale).rgb
-    : vColor;
+    vec3 baseColor = getBaseColor();
 
     vec3 result = 0.40 * baseColor;
 

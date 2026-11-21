@@ -16,11 +16,7 @@ std::vector<ScenePart> createStageGeometry()
 
     constexpr float PI = 3.14159265359f;
 
-    // ------------------------------------------------------------
-    // Helper functions
-    // ------------------------------------------------------------
 
-    // Create an axis-aligned box and place it in the scene.
     auto addBox = [&](const std::string& name,
                       const glm::vec3& size,
                       const glm::vec3& color,
@@ -33,8 +29,6 @@ std::vector<ScenePart> createStageGeometry()
         parts.push_back(part);
     };
 
-    // Create a box rotated around the Z axis. This is useful for
-    // guitar necks, strings, microphone booms, and character limbs.
     auto addRotatedBox = [&](const std::string& name,
                              const glm::vec3& size,
                              const glm::vec3& color,
@@ -52,7 +46,6 @@ std::vector<ScenePart> createStageGeometry()
         parts.push_back(part);
     };
 
-    // makeCylinder() creates a cylinder of unit height along the Y axis.
     auto addCylinder = [&](const std::string& name,
                            float radius,
                            float height,
@@ -68,8 +61,6 @@ std::vector<ScenePart> createStageGeometry()
         parts.push_back(part);
     };
 
-    // Rotate a cylinder so its axis points along Z instead of Y.
-    // This is used for horizontally mounted drums.
     auto addCylinderAlongZ = [&](const std::string& name,
                                  float radius,
                                  float length,
@@ -101,9 +92,6 @@ std::vector<ScenePart> createStageGeometry()
         parts.push_back(part);
     };
 
-    // Build a rectangular limb between two points in the XY plane.
-    // The Z coordinate is interpolated by placing the segment halfway
-    // between the two supplied points.
     auto addLimb = [&](const std::string& name,
                        const glm::vec3& start,
                        const glm::vec3& end,
@@ -130,7 +118,6 @@ std::vector<ScenePart> createStageGeometry()
             angleDegrees
         );
     };
-        // Create a fully 3D cylindrical limb between two points.
     auto addLimb3D = [&](const std::string& name,
                          const glm::vec3& start,
                          const glm::vec3& end,
@@ -190,7 +177,6 @@ std::vector<ScenePart> createStageGeometry()
         parts.push_back(part);
     };
 
-    // Add a simple face looking towards the camera (+Z direction).
     auto addFaceDetails = [&](const std::string& prefix,
                               float x,
                               float y,
@@ -210,7 +196,6 @@ std::vector<ScenePart> createStageGeometry()
                       glm::vec3(x, y + 0.155f, z + 0.225f),
                       0.0f);
 
-        // Eyes
         addSphere(prefix + " Left Eye", eyeColor,
                   glm::vec3(x - 0.09f, y + 0.025f, z + 0.252f),
                   glm::vec3(0.035f, 0.042f, 0.022f));
@@ -219,7 +204,6 @@ std::vector<ScenePart> createStageGeometry()
                   glm::vec3(x + 0.09f, y + 0.025f, z + 0.252f),
                   glm::vec3(0.035f, 0.042f, 0.022f));
 
-        // Nose and mouth
         addSphere(prefix + " Nose",
                   glm::vec3(0.72f, 0.47f, 0.34f),
                   glm::vec3(x, y - 0.045f, z + 0.275f),
@@ -230,7 +214,6 @@ std::vector<ScenePart> createStageGeometry()
                mouthColor,
                glm::vec3(x, y - 0.145f, z + 0.255f));
 
-        // Ears
         addSphere(prefix + " Left Ear",
                   glm::vec3(0.72f, 0.48f, 0.35f),
                   glm::vec3(x - 0.275f, y - 0.015f, z + 0.015f),
@@ -242,9 +225,6 @@ std::vector<ScenePart> createStageGeometry()
                   glm::vec3(0.065f, 0.085f, 0.055f));
     };
 
-    // ------------------------------------------------------------
-    // 1. STAGE FLOOR AND PODIUM
-    // ------------------------------------------------------------
 
     const glm::vec3 darkFloor(0.16f, 0.17f, 0.20f);
     const glm::vec3 stageColor(0.09f, 0.09f, 0.11f);
@@ -383,9 +363,6 @@ std::vector<ScenePart> createStageGeometry()
            stageColor,
            glm::vec3(0.0f, 0.15f, 4.0f));
 
-    // ------------------------------------------------------------
-    // 2. BACK WALL AND DECORATIVE PANELS
-    // ------------------------------------------------------------
 
     const glm::vec3 wallColor(0.18f, 0.08f, 0.20f);
     const glm::vec3 panelColor(0.35f, 0.12f, 0.30f);
@@ -405,9 +382,6 @@ std::vector<ScenePart> createStageGeometry()
            panelColor,
            glm::vec3(5.0f, 3.0f, -4.6f));
 
-    // ------------------------------------------------------------
-    // 3. SPOTLIGHT RIGS
-    // ------------------------------------------------------------
 
     const glm::vec3 metalColor(0.25f, 0.27f, 0.30f);
     const glm::vec3 lampColor(1.0f, 0.75f, 0.25f);
@@ -438,26 +412,20 @@ std::vector<ScenePart> createStageGeometry()
                   glm::vec3(0.12f, 0.12f, 0.12f));
     }
 
-    // ------------------------------------------------------------
-    // 4. MICROPHONE AND STAND
-    // ------------------------------------------------------------
 
     const glm::vec3 micMetal(0.62f, 0.66f, 0.70f);
     const glm::vec3 micBlack(0.035f, 0.04f, 0.05f);
     const float micZ = 1.85f;
 
-    // Vertical stand and round floor base.
     addCylinder("Microphone Stand", 0.035f, 2.0f,
                 micMetal, glm::vec3(-0.18f, 1.0f, micZ));
 
     addCylinder("Microphone Base", 0.25f, 0.055f,
                 micBlack, glm::vec3(-0.18f, 0.0275f, micZ));
 
-    // Height-adjustment collar.
     addCylinder("Microphone Stand Collar", 0.055f, 0.10f,
                 micBlack, glm::vec3(-0.18f, 1.48f, micZ));
 
-    // Horizontal boom, microphone body, and rounded grille.
     addRotatedBox("Microphone Boom",
                   glm::vec3(0.62f, 0.045f, 0.045f),
                   micMetal,
@@ -475,23 +443,18 @@ std::vector<ScenePart> createStageGeometry()
               glm::vec3(0.565f, 2.02f, micZ),
               glm::vec3(0.085f, 0.075f, 0.075f));
 
-    // Small silver band between the microphone body and grille.
     addRotatedBox("Microphone Grille Ring",
                   glm::vec3(0.025f, 0.095f, 0.095f),
                   micMetal,
                   glm::vec3(0.52f, 2.02f, micZ),
                   0.0f);
 
-    // ------------------------------------------------------------
-    // 5. DRUM SET
-    // ------------------------------------------------------------
 
     const glm::vec3 drumRed(0.55f, 0.045f, 0.075f);
     const glm::vec3 drumDarkRed(0.22f, 0.025f, 0.035f);
     const glm::vec3 drumHead(0.72f, 0.73f, 0.75f);
     const glm::vec3 drumSilver(0.65f, 0.67f, 0.70f);
 
-    // Bass drum: horizontal cylinder, with its front facing the camera (+Z).
     addCylinderAlongZ("Bass Drum Shell",
                       0.58f, 0.65f, drumRed,
                       glm::vec3(-3.0f, 0.58f, -2.0f));
@@ -506,7 +469,6 @@ std::vector<ScenePart> createStageGeometry()
               glm::vec3(-3.0f, 0.58f, -1.592f),
               glm::vec3(0.085f, 0.085f, 0.018f));
 
-    // Two tom drums are also oriented horizontally.
     addCylinderAlongZ("Left Tom Drum",
                       0.32f, 0.38f, drumRed,
                       glm::vec3(-3.80f, 1.35f, -2.05f));
@@ -525,14 +487,12 @@ std::vector<ScenePart> createStageGeometry()
               glm::vec3(-2.35f, 1.35f, -1.825f),
               glm::vec3(0.265f, 0.265f, 0.025f));
 
-    // Vertical supports below the tom drums.
     addCylinder("Left Tom Support", 0.035f, 0.85f,
                 drumSilver, glm::vec3(-3.80f, 0.55f, -2.05f));
 
     addCylinder("Right Tom Support", 0.035f, 0.85f,
                 drumSilver, glm::vec3(-2.35f, 0.55f, -2.05f));
 
-    // Cymbals and the stands underneath them.
     addCylinder("Left Cymbal", 0.50f, 0.05f,
                 drumSilver, glm::vec3(-4.50f, 1.80f, -2.0f));
 
@@ -545,23 +505,17 @@ std::vector<ScenePart> createStageGeometry()
     addCylinder("Right Cymbal Stand", 0.025f, 1.70f,
                 metalColor, glm::vec3(-1.80f, 0.925f, -2.0f));
 
-    // Small cymbal mounting posts.
     addCylinder("Left Cymbal Mount", 0.045f, 0.12f,
                 metalColor, glm::vec3(-4.50f, 1.86f, -2.0f));
 
     addCylinder("Right Cymbal Mount", 0.045f, 0.12f,
                 metalColor, glm::vec3(-1.80f, 1.86f, -2.0f));
-    // ------------------------------------------------------------
-    // 5A. DRUMMER
-    // ------------------------------------------------------------
-    // Seated drummer, positioned behind the existing drum kit.
     const glm::vec3 drummerSkin(0.85f, 0.62f, 0.45f);
     const glm::vec3 drummerShirt(0.10f, 0.12f, 0.17f);
     const glm::vec3 drummerPants(0.055f, 0.06f, 0.075f);
     const glm::vec3 drummerHair(0.035f, 0.025f, 0.022f);
     const glm::vec3 drumStickColor(0.72f, 0.48f, 0.25f);
 
-    // Drum throne.
     addCylinder("Drummer Stool Base", 0.24f, 0.06f,
                 metalColor, glm::vec3(-3.0f, 0.10f, -3.35f));
     addCylinder("Drummer Stool Stem", 0.045f, 0.75f,
@@ -570,8 +524,6 @@ std::vector<ScenePart> createStageGeometry()
                 glm::vec3(0.045f, 0.045f, 0.055f),
                 glm::vec3(-3.0f, 0.90f, -3.35f));
 
-    // Torso, neck, head and face.
-    // One solid rounded drummer torso
     addSphere("Drummer Torso",
             drummerShirt,
             glm::vec3(-3.0f, 1.48f, -3.35f),
@@ -584,7 +536,6 @@ std::vector<ScenePart> createStageGeometry()
               glm::vec3(0.25f, 0.29f, 0.23f));
     addFaceDetails("Drummer", -3.0f, 2.18f, -3.35f, drummerHair);
 
-    // Bent legs in a seated position.
     const glm::vec3 drummerLeftHip(-3.22f, 1.12f, -3.28f);
     const glm::vec3 drummerLeftKnee(-3.66f, 0.70f, -2.78f);
     const glm::vec3 drummerLeftAnkle(-3.78f, 0.16f, -2.28f);
@@ -607,23 +558,17 @@ std::vector<ScenePart> createStageGeometry()
            glm::vec3(0.025f, 0.025f, 0.035f),
            glm::vec3(-2.22f, 0.10f, -2.16f));
 
-    // ------------------------------------------------------------
-// ------------------------------------------------------------
-// DRUMMER ARMS - 3D CONNECTED ARMS
-// ------------------------------------------------------------
 
-// Left arm joints
+
 const glm::vec3 drummerLeftShoulder(-3.34f, 1.78f, -3.22f);
 const glm::vec3 drummerLeftElbow(-3.60f, 1.63f, -2.76f);
 const glm::vec3 drummerLeftWrist(-3.75f, 1.72f, -2.30f);
 
-// Right arm joints
 const glm::vec3 drummerRightShoulder(-2.66f, 1.78f, -3.22f);
 const glm::vec3 drummerRightElbow(-2.40f, 1.63f, -2.76f);
 const glm::vec3 drummerRightWrist(-2.25f, 1.72f, -2.30f);
 
 
-// Upper arms
 addLimb3D("Drummer Left Upper Arm",
           drummerLeftShoulder,
           drummerLeftElbow,
@@ -635,7 +580,6 @@ addLimb3D("Drummer Right Upper Arm",
           0.095f, drummerSkin);
 
 
-// Elbow joints
 addSphere("Drummer Left Elbow",
           drummerSkin,
           drummerLeftElbow,
@@ -647,7 +591,6 @@ addSphere("Drummer Right Elbow",
           glm::vec3(0.105f, 0.105f, 0.105f));
 
 
-// Forearms
 addLimb3D("Drummer Left Forearm",
           drummerLeftElbow,
           drummerLeftWrist,
@@ -659,7 +602,6 @@ addLimb3D("Drummer Right Forearm",
           0.078f, drummerSkin);
 
 
-// Hands
 addSphere("Drummer Left Hand",
           drummerSkin,
           drummerLeftWrist,
@@ -671,24 +613,16 @@ addSphere("Drummer Right Hand",
           glm::vec3(0.105f, 0.09f, 0.10f));
 
 
-// ------------------------------------------------------------
-// DRUMSTICKS
-// ------------------------------------------------------------
 
-// Left stick: directed towards the left cymbal
 addLimb3D("Drummer Left Drumstick",
           drummerLeftWrist,
           glm::vec3(-4.25f, 1.82f, -1.78f),
           0.018f, drumStickColor);
 
-// Right stick: directed towards the right cymbal
 addLimb3D("Drummer Right Drumstick",
           drummerRightWrist,
           glm::vec3(-1.75f, 1.82f, -1.78f),
           0.018f, drumStickColor);
-    // ------------------------------------------------------------
-    // 6. ELECTRIC GUITAR
-    // ------------------------------------------------------------
 
     const glm::vec3 guitarColor(0.88f, 0.17f, 0.045f);
     const glm::vec3 guitarDark(0.07f, 0.055f, 0.045f);
@@ -697,37 +631,28 @@ addLimb3D("Drummer Right Drumstick",
     const glm::vec3 guitarMetal(0.78f, 0.79f, 0.82f);
     const glm::vec3 guitarPickguardColor(0.80f, 0.77f, 0.68f);
 
-    // The guitar is in front of the guitarist (positive Z), so it is
-    // visible instead of being hidden inside the character's torso.
     const float guitarZ = 0.34f;
     const float guitarAngle = -22.0f;
 
-    // Two rounded bouts and a central waist create a recognizable
-    // double-cutaway electric-guitar silhouette from simple spheres.
-    // Lower body
 addSphere("Guitar Lower Body",
           guitarColor,
           glm::vec3(3.0f, 0.94f, guitarZ),
           glm::vec3(0.35f, 0.39f, 0.13f));
 
-// Upper body
 addSphere("Guitar Upper Body",
           guitarColor,
           glm::vec3(3.0f, 1.30f, guitarZ),
           glm::vec3(0.30f, 0.33f, 0.125f));
 
-// Narrow waist
 addSphere("Guitar Body Waist",
           guitarColor,
           glm::vec3(3.0f, 1.12f, guitarZ + 0.005f),
           glm::vec3(0.245f, 0.37f, 0.115f));
 
-// Cream pickguard
 addSphere("Guitar Pickguard",
           guitarPickguardColor,
           glm::vec3(2.91f, 1.12f, 0.475f),
           glm::vec3(0.15f, 0.25f, 0.025f));
-    // Upper and lower horns improve the electric-guitar silhouette.
     addSphere("Guitar Upper Horn", guitarColor,
               glm::vec3(3.25f, 1.48f, guitarZ),
               glm::vec3(0.16f, 0.30f, 0.13f));
@@ -735,9 +660,7 @@ addSphere("Guitar Pickguard",
               glm::vec3(2.75f, 1.47f, guitarZ),
               glm::vec3(0.15f, 0.27f, 0.13f));
 
-    // Dark pickguard on the front face.
     
-    // Neck and dark fretboard, tilted upward to the right.
     const glm::vec3 neckCenter(3.35f, 2.05f, guitarZ);
 
     addRotatedBox("Guitar Neck",
@@ -752,14 +675,12 @@ addSphere("Guitar Pickguard",
                   glm::vec3(neckCenter.x, neckCenter.y, 0.415f),
                   guitarAngle);
 
-    // Headstock continues the same angle as the neck.
     addRotatedBox("Guitar Headstock",
                   glm::vec3(0.24f, 0.34f, 0.14f),
                   guitarNeckColor,
                   glm::vec3(3.72f, 2.89f, guitarZ),
                   guitarAngle);
 
-    // Six strings run from the bridge, along the body and neck, to the headstock.
     const glm::vec3 localX(std::cos(glm::radians(guitarAngle)),
                            std::sin(glm::radians(guitarAngle)),
                            0.0f);
@@ -780,7 +701,6 @@ addSphere("Guitar Pickguard",
                       guitarAngle);
     }
 
-    // Frets are short metal bars across the fretboard.
     for (int i = 0; i < 7; ++i)
     {
         const float distance = -0.48f + static_cast<float>(i) * 0.15f;
@@ -797,7 +717,6 @@ addSphere("Guitar Pickguard",
                       guitarAngle);
     }
 
-    // Bridge, pickups, and control knobs.
     addRotatedBox("Guitar Bridge",
                   glm::vec3(0.27f, 0.055f, 0.035f),
                   guitarMetal,
@@ -815,7 +734,6 @@ addSphere("Guitar Pickguard",
                   guitarDark,
                   glm::vec3(3.0f, 1.05f, 0.49f),
                   0.0f);
-    // Middle pickup and six pole pieces on each pickup.
     addRotatedBox("Guitar Middle Pickup",
                   glm::vec3(0.22f, 0.065f, 0.035f),
                   guitarDark,
@@ -833,7 +751,6 @@ addSphere("Guitar Pickguard",
         }
     }
 
-    // Six small bridge saddles and a pickup selector switch.
     for (int saddle = 0; saddle < 6; ++saddle)
     {
         const float saddleX = 2.93f + static_cast<float>(saddle) * 0.028f;
@@ -864,7 +781,6 @@ addSphere("Guitar Pickguard",
               glm::vec3(3.27f, 0.91f, 0.49f),
               glm::vec3(0.055f, 0.055f, 0.018f));
 
-    // Tuning pegs on both sides of the headstock.
     for (int i = 0; i < 3; ++i)
     {
         const float y = 2.78f + static_cast<float>(i) * 0.09f;
@@ -882,16 +798,12 @@ addSphere("Guitar Pickguard",
                   glm::vec3(0.045f, 0.035f, 0.035f));
     }
 
-    // ------------------------------------------------------------
-    // 7. SINGER
-    // ------------------------------------------------------------
 
     const glm::vec3 skinColor(0.85f, 0.62f, 0.45f);
     const glm::vec3 shirtColor(0.05f, 0.20f, 0.65f);
     const glm::vec3 pantsColor(0.08f, 0.08f, 0.12f);
     const glm::vec3 hairColor(0.12f, 0.055f, 0.025f);
 
-    // Head and torso.
     addSphere("Singer Head",
               skinColor,
               glm::vec3(0.0f, 2.30f, 1.20f),
@@ -904,7 +816,6 @@ addSphere("Guitar Pickguard",
            shirtColor,
            glm::vec3(0.0f, 1.45f, 1.20f));
 
-    // Legs and shoes.
     addBox("Singer Left Leg",
            glm::vec3(0.22f, 0.90f, 0.25f),
            pantsColor,
@@ -925,7 +836,6 @@ addSphere("Guitar Pickguard",
            glm::vec3(0.025f, 0.025f, 0.035f),
            glm::vec3(0.18f, 0.065f, 1.28f));
 
-    // Raised right arm reaches towards the microphone.
     const glm::vec3 singerRightShoulder(0.27f, 1.78f, 1.38f);
     const glm::vec3 singerRightElbow(0.43f, 1.91f, 1.53f);
     const glm::vec3 singerRightWrist(0.32f, 2.035f, 1.73f);
@@ -946,7 +856,6 @@ addSphere("Guitar Pickguard",
               skinColor, singerRightWrist,
               glm::vec3(0.105f, 0.10f, 0.085f));
 
-    // Left arm is relaxed and slightly bent.
     const glm::vec3 singerLeftShoulder(-0.27f, 1.78f, 1.36f);
     const glm::vec3 singerLeftElbow(-0.45f, 1.39f, 1.43f);
     const glm::vec3 singerLeftWrist(-0.34f, 1.06f, 1.48f);
@@ -967,9 +876,6 @@ addSphere("Guitar Pickguard",
               skinColor, singerLeftWrist,
               glm::vec3(0.10f, 0.10f, 0.085f));
 
-    // ------------------------------------------------------------
-    // 8. GUITARIST
-    // ------------------------------------------------------------
 
     const glm::vec3 guitaristShirt(0.10f, 0.45f, 0.25f);
     const glm::vec3 guitaristHair(0.045f, 0.025f, 0.018f);
@@ -985,14 +891,12 @@ addSphere("Guitar Pickguard",
            glm::vec3(0.65f, 0.90f, 0.35f),
            guitaristShirt,
            glm::vec3(3.0f, 1.45f, 0.0f));
-    // Shoulder strap placed slightly in front of the guitarist's torso.
     addLimb("Guitar Shoulder Strap",
             glm::vec3(3.34f, 2.05f, 0.18f),
             glm::vec3(2.70f, 0.82f, 0.18f),
             0.085f, 0.035f,
             glm::vec3(0.035f, 0.035f, 0.045f));
 
-    // Legs and shoes.
     addBox("Guitarist Left Leg",
            glm::vec3(0.22f, 0.90f, 0.25f),
            pantsColor,
@@ -1013,7 +917,6 @@ addSphere("Guitar Pickguard",
            glm::vec3(0.025f, 0.025f, 0.035f),
            glm::vec3(3.18f, 0.065f, 0.08f));
 
-    // The guitarist's left hand reaches the neck to play notes.
     const glm::vec3 guitaristLeftShoulder(3.28f, 1.78f, 0.14f);
     const glm::vec3 guitaristLeftElbow(3.48f, 1.91f, 0.34f);
     const glm::vec3 guitaristLeftWrist(3.49f, 2.23f, 0.54f);
@@ -1034,8 +937,6 @@ addSphere("Guitar Pickguard",
               skinColor, guitaristLeftWrist,
               glm::vec3(0.105f, 0.10f, 0.085f));
 
-    // The guitarist's right hand is positioned over the guitar body
-    // to represent strumming.
     const glm::vec3 guitaristRightShoulder(2.72f, 1.78f, 0.12f);
     const glm::vec3 guitaristRightElbow(2.53f, 1.48f, 0.34f);
     const glm::vec3 guitaristRightWrist(2.91f, 1.17f, 0.54f);
