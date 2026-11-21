@@ -1291,6 +1291,115 @@ addSphere("Guitar Pickguard",
         }
     }
 
+
+
+    const glm::vec3 curtainDark(0.025f, 0.025f, 0.035f);
+    const glm::vec3 curtainFold(0.065f, 0.055f, 0.075f);
+
+    addBox(
+        "Stage Backdrop Curtain",
+        glm::vec3(14.5f, 5.0f, 0.12f),
+        curtainDark,
+        glm::vec3(0.0f, 3.0f, -4.45f)
+    );
+
+    for (int i = 0; i < 29; i++)
+    {
+        float x = -7.0f + i * 0.5f;
+
+        addBox(
+            "Stage Curtain Fold " + std::to_string(i),
+            glm::vec3(0.12f, 5.0f, 0.18f),
+            curtainFold,
+            glm::vec3(x, 3.0f, -4.32f)
+        );
+    }
+
+
+
+    const glm::vec3 bannerColor(0.075f, 0.035f, 0.085f);
+    const glm::vec3 bannerFrame(0.45f, 0.46f, 0.50f);
+    const glm::vec3 bannerAccent(0.65f, 0.12f, 0.22f);
+
+    addBox(
+        "Stage Band Banner",
+        glm::vec3(5.0f, 2.3f, 0.10f),
+        bannerColor,
+        glm::vec3(0.0f, 3.7f, -4.12f)
+    );
+
+    addBox(
+        "Stage Banner Top Frame",
+        glm::vec3(5.2f, 0.08f, 0.15f),
+        bannerFrame,
+        glm::vec3(0.0f, 4.89f, -4.05f)
+    );
+
+    addBox(
+        "Stage Banner Bottom Frame",
+        glm::vec3(5.2f, 0.08f, 0.15f),
+        bannerFrame,
+        glm::vec3(0.0f, 2.51f, -4.05f)
+    );
+
+    for (float x : {-2.55f, 2.55f})
+    {
+        addBox(
+            "Stage Banner Side Frame",
+            glm::vec3(0.08f, 2.4f, 0.15f),
+            bannerFrame,
+            glm::vec3(x, 3.7f, -4.05f)
+        );
+    }
+
+    for (int i = 0; i < 5; i++)
+    {
+        float x = -1.6f + i * 0.8f;
+
+        addRotatedBox(
+            "Stage Banner Stripe " + std::to_string(i),
+            glm::vec3(0.12f, 1.3f, 0.035f),
+            bannerAccent,
+            glm::vec3(x, 3.7f, -4.045f),
+            30.0f
+        );
+    }
+
+
+
+    const glm::vec3 sidePanelColor(0.22f, 0.035f, 0.055f);
+    const glm::vec3 sidePanelFrame(0.35f, 0.35f, 0.40f);
+
+    for (float x : {-5.5f, 5.5f})
+    {
+        addBox(
+            "Stage Side Backdrop Panel",
+            glm::vec3(1.5f, 3.5f, 0.10f),
+            sidePanelColor,
+            glm::vec3(x, 3.0f, -4.08f)
+        );
+
+        for (float y : {1.2f, 4.8f})
+        {
+            addBox(
+                "Stage Side Panel Horizontal Frame",
+                glm::vec3(1.65f, 0.07f, 0.14f),
+                sidePanelFrame,
+                glm::vec3(x, y, -4.01f)
+            );
+        }
+
+        for (float offset : {-0.8f, 0.8f})
+        {
+            addBox(
+                "Stage Side Panel Vertical Frame",
+                glm::vec3(0.07f, 3.6f, 0.14f),
+                sidePanelFrame,
+                glm::vec3(x + offset, 3.0f, -4.01f)
+            );
+        }
+    }
+
     return parts;
 }
 
