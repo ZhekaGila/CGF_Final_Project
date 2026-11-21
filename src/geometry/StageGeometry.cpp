@@ -1196,6 +1196,101 @@ addSphere("Guitar Pickguard",
         );
     }
 
+
+    const glm::vec3 trussMetal(0.42f, 0.45f, 0.50f);
+
+    auto trussBeam = [&](const std::string& name,
+                        const glm::vec3& a,
+                        const glm::vec3& b,
+                        float radius = 0.045f)
+    {
+        addLimb3D(name, a, b, radius, trussMetal);
+    };
+
+    const float trussY = 5.65f;
+    const float trussZ = -2.5f;
+    const float trussDepth = 0.45f;
+
+    for (float z : {trussZ - trussDepth / 2.0f,
+                    trussZ + trussDepth / 2.0f})
+    {
+        trussBeam(
+            "Truss Horizontal Upper",
+            {-6.2f, trussY + 0.22f, z},
+            { 6.2f, trussY + 0.22f, z}
+        );
+
+        trussBeam(
+            "Truss Horizontal Lower",
+            {-6.2f, trussY - 0.22f, z},
+            { 6.2f, trussY - 0.22f, z}
+        );
+    }
+
+    for (int i = 0; i < 12; i++)
+    {
+        float x1 = -6.0f + i * 1.0f;
+        float x2 = x1 + 1.0f;
+
+        float y1 = trussY - 0.22f;
+        float y2 = trussY + 0.22f;
+
+        trussBeam(
+            "Truss Diagonal",
+            {x1, y1, trussZ + 0.23f},
+            {x2, y2, trussZ + 0.23f},
+            0.025f
+        );
+
+        trussBeam(
+            "Truss Diagonal Back",
+            {x1, y2, trussZ - 0.23f},
+            {x2, y1, trussZ - 0.23f},
+            0.025f
+        );
+    }
+
+    for (float x : {-6.2f, 6.2f})
+    {
+        for (float z : {trussZ - 0.23f, trussZ + 0.23f})
+        {
+            trussBeam(
+                "Truss Vertical Support",
+                {x, 0.0f, z},
+                {x, 5.87f, z}
+            );
+        }
+
+        for (int i = 0; i < 6; i++)
+        {
+            float y1 = i * 0.95f;
+            float y2 = y1 + 0.95f;
+
+            trussBeam(
+                "Truss Vertical Diagonal",
+                {x, y1, trussZ - 0.23f},
+                {x, y2, trussZ + 0.23f},
+                0.025f
+            );
+        }
+    }
+
+
+    for (int i = 0; i <= 12; i++)
+    {
+        float x = -6.0f + i * 1.0f;
+
+        for (float y : {trussY - 0.22f, trussY + 0.22f})
+        {
+            trussBeam(
+                "Truss Cross Connector",
+                {x, y, trussZ - 0.23f},
+                {x, y, trussZ + 0.23f},
+                0.025f
+            );
+        }
+    }
+
     return parts;
 }
 
