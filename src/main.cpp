@@ -535,6 +535,49 @@ void pointCameraAt(Camera &camera, const glm::vec3 &position,
     camera.setPose(position, yaw, pitch);
 }
 
+
+GLuint createSoundWaveProgram()
+{
+    std::string vs = loadShaderSource("shaders/sound_wave.vert");
+    std::string fs = loadShaderSource("shaders/sound_wave.frag");
+
+    if (vs.empty() || fs.empty())
+        return 0;
+
+    GLuint vertex = compileShader(GL_VERTEX_SHADER, vs.c_str());
+    GLuint fragment = compileShader(GL_FRAGMENT_SHADER, fs.c_str());
+
+    if (!vertex || !fragment)
+    {
+        glDeleteShader(vertex);
+        glDeleteShader(fragment);
+        return 0;
+    }
+
+    GLuint program = glCreateProgram();
+    glAttachShader(program, vertex);
+    glAttachShader(program, fragment);
+    glLinkProgram(program);
+
+    GLint linked = GL_FALSE;
+    glGetProgramiv(program, GL_LINK_STATUS, &linked);
+
+    if (!linked)
+    {
+        char log[1024];
+        glGetProgramInfoLog(program, 1024, nullptr, log);
+        std::cerr << "Sound wave shader error: " << log << std::endl;
+        glDeleteProgram(program);
+        program = 0;
+    }
+
+    glDeleteShader(vertex);
+    glDeleteShader(fragment);
+
+    return program;
+}
+
+
 int main()
 {
 
@@ -614,6 +657,47 @@ int main()
     }
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
+
+
+    GLuint soundWaveProgram = createSoundWaveProgram();
+
+    constexpr int waveSegments = 256;
+    std::vector<float> waveVertices;
+
+    for (int i = 0; i < waveSegments; ++i)
+    {
+        float angle = 2.0f * 3.14159265f * i / waveSegments;
+
+        waveVertices.push_back(std::cos(angle));
+        waveVertices.push_back(std::sin(angle));
+    }
+
+    GLuint waveVAO = 0;
+    GLuint waveVBO = 0;
+
+    glGenVertexArrays(1, &waveVAO);
+    glGenBuffers(1, &waveVBO);
+
+    glBindVertexArray(waveVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, waveVBO);
+
+    glBufferData(
+        GL_ARRAY_BUFFER,
+        waveVertices.size() * sizeof(float),
+        waveVertices.data(),
+        GL_STATIC_DRAW
+    );
+
+    glVertexAttribPointer(
+        0, 2, GL_FLOAT, GL_FALSE,
+        2 * sizeof(float), nullptr
+    );
+
+    glEnableVertexAttribArray(0);
+    glBindVertexArray(0);
+
+    float soundWaveTime = 0.0f;
+    float soundWaveVisibility = 0.0f;
 
 
     GLuint shaderProgram = createShaderProgram();
@@ -858,6 +942,7 @@ int main()
     int lightingMode = 1; 
     float showSpeed = 1.0f;
     float showTime = 0.0f;
+    float spotlightBrightness = 0.0f;
 
     float musicBPM = 120.0f;
     float beatTime = 0.0f;
@@ -905,9 +990,6 @@ int main()
              glm::vec3(0.0f, -1.0f, 0.0f),
              glm::vec3(1.0f, 0.88f, 0.65f)}};
 
-    // --------------------------------------------------------
-    // 8. RENDERING LOOP
-    // --------------------------------------------------------
 
     while (!glfwWindowShouldClose(window))
     {
@@ -915,6 +997,21 @@ int main()
         const double now = glfwGetTime();
         const float deltaTime = static_cast<float>(now - lastFrameTime);
         lastFrameTime = now;
+        float targetBrightness = audio.isPlaying() ? 1.0f : 0.0f;
+
+        spotlightBrightness +=
+            (targetBrightness - spotlightBrightness) *
+            std::min(1.0f, deltaTime * 2.0f);
+
+        if (audio.isPlaying())
+            soundWaveTime += deltaTime;
+
+        float targetWaveVisibility = audio.isPlaying() ? 1.0f : 0.0f;
+
+        soundWaveVisibility +=
+            (targetWaveVisibility - soundWaveVisibility) *
+            std::min(1.0f, deltaTime * 4.0f);
+
         confetti.update(deltaTime);
 
         const bool fast =
@@ -956,9 +1053,6 @@ int main()
             return edge;
         };
 
-        // --------------------------------------------------------
-        // MUSIC PLAY / PAUSE
-        // --------------------------------------------------------
 
         if (pressed(GLFW_KEY_M, previousMusic))
         {
@@ -1001,9 +1095,6 @@ int main()
                       << std::endl;
         }
 
-        // --------------------------------------------------------
-        // VOLUME CONTROL
-        // --------------------------------------------------------
 
         const bool shiftPressed =
             glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS ||
@@ -1342,7 +1433,6 @@ int main()
         if (wowStrength > 0.0f)
             lights[4].color = glm::mix(lights[4].color,
                                        glm::vec3(2.3f, 2.0f, 1.6f), wowStrength);
-        // Beat synchronized brightness pulse for central spotlight
         lights[4].color *= (1.0f + beatPulse * 0.65f);
 
         int spotlightNumbers[4] = {1, 2, 4, 5};
@@ -1418,12 +1508,15 @@ int main()
                     1,
                     glm::value_ptr(lights[i].direction));
 
-                glUniform3fv(
-                    glGetUniformLocation(
-                        shaderProgram,
-                        (prefix + "color").c_str()),
-                    1,
-                    glm::value_ptr(lights[i].color));
+                glm::vec3 activeLightColor =
+                        lights[i].color * spotlightBrightness;
+
+                    glUniform3fv(
+                        glGetUniformLocation(
+                            shaderProgram,
+                            (prefix + "color").c_str()),
+                        1,
+                        glm::value_ptr(activeLightColor));
 
                 float innerAngle = (i == 4) ? 40.0f : 25.0f;
                 float outerAngle = (i == 4) ? 50.0f : 35.0f;
@@ -1485,7 +1578,10 @@ int main()
 
                     if (mesh.name == bulbName)
                     {
-                        emissionColor = lights[i].color * (1.5f + 0.65f * wowStrength);
+                        emissionColor =
+                            lights[i].color *
+                            (1.5f + 0.65f * wowStrength) *
+                            spotlightBrightness;
                         break;
                     }
                 }
@@ -1532,10 +1628,82 @@ int main()
 
             if (audienceVisible)
                 audience.draw(shaderProgram, audienceTime, audienceEnergetic || wowStrength > 0.2f);
+
+
+            if (soundWaveProgram != 0 && soundWaveVisibility > 0.01f)
+            {
+                glEnable(GL_BLEND);
+                glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+                glDepthMask(GL_FALSE);
+
+                glUseProgram(soundWaveProgram);
+                glBindVertexArray(waveVAO);
+
+                GLint mvpLoc = glGetUniformLocation(soundWaveProgram, "uMVP");
+                GLint radiusLoc = glGetUniformLocation(soundWaveProgram, "uRadius");
+                GLint timeLoc = glGetUniformLocation(soundWaveProgram, "uTime");
+                GLint phaseLoc = glGetUniformLocation(soundWaveProgram, "uPhase");
+                GLint colorOffsetLoc = glGetUniformLocation(soundWaveProgram, "uColorOffset");
+                GLint alphaLoc = glGetUniformLocation(soundWaveProgram, "uAlpha");
+
+                glUniform1f(timeLoc, soundWaveTime);
+
+                for (int speaker = 0; speaker < 2; ++speaker)
+                {
+                    float x = speaker == 0 ? -7.0f : 7.0f;
+
+
+                    for (int i = 0; i < 4; ++i)
+                    {
+                        float phase = std::fmod(
+                            soundWaveTime * 0.8f + i * 0.25f,
+                            1.0f
+                        );
+
+                        glUniform1f(phaseLoc, i * 0.35f + speaker * 0.2f);
+                        float colorProgress = soundWaveTime * (5.0f / 5.0f);
+
+                        float waveColor = colorProgress - phase * 5.0f;
+
+                        glUniform1f(colorOffsetLoc, waveColor);
+
+                        float radius = 0.45f + phase * 2.0f;
+                        float z = 1.7f + phase * 3.5f;
+
+                        float alpha = (1.0f - phase) *
+                                    0.65f * soundWaveVisibility;
+
+                        glm::mat4 model(1.0f);
+                        model = glm::translate(
+                            model,
+                            glm::vec3(x, 3.2f, z)
+                        );
+
+                        glm::mat4 mvp = projection * view * model;
+
+                        glUniformMatrix4fv(
+                            mvpLoc, 1, GL_FALSE, glm::value_ptr(mvp)
+                        );
+
+                        glUniform1f(radiusLoc, radius);
+                        glUniform1f(alphaLoc, alpha);
+
+                        glLineWidth(2.0f);
+                        glDrawArrays(GL_LINE_LOOP, 0, waveSegments);
+                    }
+                }
+
+                glBindVertexArray(0);
+                glDepthMask(GL_TRUE);
+                glDisable(GL_BLEND);
+            }
+
+
+
             glBindVertexArray(0);
 
             glEnable(GL_BLEND);
-            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE);
             glDepthMask(GL_FALSE);
 
             glUseProgram(glowShaderProgram);
@@ -1570,12 +1738,15 @@ int main()
                     1,
                     glm::value_ptr(worldLightPosition));
 
+                glm::vec3 glowColor =
+                    lights[i].color * spotlightBrightness;
+
                 glUniform3fv(
                     glGetUniformLocation(
                         glowShaderProgram,
                         "uGlowColor"),
                     1,
-                    glm::value_ptr(lights[i].color));
+                    glm::value_ptr(glowColor));
 
                 glDrawArrays(GL_TRIANGLES, 0, 6);
             }
@@ -1696,6 +1867,10 @@ int main()
     glDeleteProgram(glowShaderProgram);
     glDeleteProgram(ledGlowShaderProgram);
     glDeleteProgram(shaderProgram);
+
+    glDeleteVertexArrays(1, &waveVAO);
+    glDeleteBuffers(1, &waveVBO);
+    glDeleteProgram(soundWaveProgram);
 
     glfwDestroyWindow(window);
     glfwTerminate();
