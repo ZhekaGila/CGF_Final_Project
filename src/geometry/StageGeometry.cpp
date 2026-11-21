@@ -8,6 +8,7 @@
 #include <vector>
 
 namespace cgf {
+    
 
 std::vector<ScenePart> createStageGeometry()
 {
@@ -1086,6 +1087,114 @@ addSphere("Guitar Pickguard",
         glm::vec3(3.0f, 6.5f, 0.4f),
         clubWallColor,
         glm::vec3(0.0f, 6.75f, 26.0f));
+
+
+    const glm::vec3 speakerBody(0.045f, 0.045f, 0.055f);
+    const glm::vec3 speakerFront(0.085f, 0.09f, 0.105f);
+    const glm::vec3 speakerCone(0.015f, 0.018f, 0.025f);
+    const glm::vec3 speakerRing(0.38f, 0.40f, 0.43f);
+
+    for (int side = -1; side <= 1; side += 2)
+    {
+        float x = side * 7.0f;
+        float z = 1.0f;
+
+        std::string prefix =
+            side < 0 ? "Left PA" : "Right PA";
+
+        addBox(
+            prefix + " Cabinet",
+            glm::vec3(1.3f, 3.4f, 1.1f),
+            speakerBody,
+            glm::vec3(x, 1.7f, z)
+        );
+
+        addBox(
+            prefix + " Grille",
+            glm::vec3(1.16f, 3.2f, 0.04f),
+            speakerFront,
+            glm::vec3(x, 1.7f, z + 0.57f)
+        );
+
+        for (int i = 0; i < 2; i++)
+        {
+            float y = 1.05f + i * 1.3f;
+
+            addCylinderAlongZ(
+                prefix + " Woofer Ring " + std::to_string(i),
+                0.43f,
+                0.035f,
+                speakerRing,
+                glm::vec3(x, y, z + 0.61f)
+            );
+
+            addCylinderAlongZ(
+                prefix + " Woofer Cone " + std::to_string(i),
+                0.34f,
+                0.045f,
+                speakerCone,
+                glm::vec3(x, y, z + 0.64f)
+            );
+
+            addSphere(
+                prefix + " Woofer Center " + std::to_string(i),
+                speakerFront,
+                glm::vec3(x, y, z + 0.675f),
+                glm::vec3(0.12f, 0.12f, 0.035f)
+            );
+        }
+
+        addBox(
+            prefix + " Tweeter",
+            glm::vec3(0.48f, 0.22f, 0.055f),
+            speakerCone,
+            glm::vec3(x, 3.0f, z + 0.62f)
+        );
+
+        addBox(
+            prefix + " Base",
+            glm::vec3(1.45f, 0.10f, 1.25f),
+            speakerRing,
+            glm::vec3(x, 0.05f, z)
+        );
+    }    
+
+
+    for (int i = 0; i < 3; i++)
+    {
+        float x = -3.5f + i * 3.5f;
+        float z = 3.6f;
+
+        std::string prefix =
+            "Stage Monitor " + std::to_string(i);
+
+        addBox(
+            prefix + " Cabinet",
+            glm::vec3(1.3f, 0.55f, 0.85f),
+            speakerBody,
+            glm::vec3(x, 0.275f, z)
+        );
+
+        addBox(
+            prefix + " Grille",
+            glm::vec3(1.2f, 0.04f, 0.72f),
+            speakerFront,
+            glm::vec3(x, 0.56f, z)
+        );
+
+        parts.back().transform = glm::rotate(
+            parts.back().transform,
+            glm::radians(-18.0f),
+            glm::vec3(1.0f, 0.0f, 0.0f)
+        );
+
+        addBox(
+            prefix + " Trim",
+            glm::vec3(1.32f, 0.06f, 0.06f),
+            speakerRing,
+            glm::vec3(x, 0.20f, z + 0.44f)
+        );
+    }
 
     return parts;
 }
