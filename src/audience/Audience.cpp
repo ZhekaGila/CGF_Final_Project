@@ -69,9 +69,16 @@ void Audience::initialize()
             const float jitter = static_cast<float>((id * 37) % 11 - 5) * 0.025f;
             const float scale = 0.85f + static_cast<float>((id * 17) % 8) * 0.035f;
             const glm::vec3 tint = colors[(id * 7 + row) % colors.size()];
+            float x = (column - 6.5f) * 0.95f + jitter;
+            float z = 8.5f + row * 1.0f + jitter;
+
+            if (x > 3.5f && x < 6.5f && z < 12.0f)
+            {
+                z += 4.0f;
+            }
+
             instances.push_back({
-                { (column - 6.5f) * 1.02f + jitter, 0.0f,
-                  6.1f + row * 1.0f + jitter, scale },
+                {x, 0.0f, z, scale},
                 {tint, static_cast<float>(id) * 2.399963f}
             });
         }

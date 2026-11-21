@@ -1,3 +1,7 @@
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+
 #include <glad/glad.h>
 
 #define GLFW_INCLUDE_NONE
@@ -25,9 +29,6 @@
 #include <cmath>
 #include <algorithm>
 
-// ============================================================
-// SHADERS
-// ============================================================
 
 std::string loadShaderSource(const std::string &filePath)
 {
@@ -52,9 +53,75 @@ std::string loadShaderSource(const std::string &filePath)
     return buffer.str();
 }
 
-// ============================================================
-// SHADER COMPILATION
-// ============================================================
+GLuint createBrickTexture()
+{
+    constexpr int size = 512;
+    constexpr int brickWidth = 128;
+    constexpr int brickHeight = 64;
+    constexpr int mortar = 5;
+
+    std::vector<unsigned char> pixels(size * size * 3);
+
+    for (int y = 0; y < size; ++y)
+    {
+        int row = y / brickHeight;
+        int localY = y % brickHeight;
+        int offset = (row % 2) * (brickWidth / 2);
+
+        for (int x = 0; x < size; ++x)
+        {
+            int localX = (x + offset) % brickWidth;
+
+            bool isMortar =
+                localX < mortar ||
+                localY < mortar;
+
+            int noise = (x * 17 + y * 31 +
+                         (x * y) % 97) % 23;
+
+            int index = (y * size + x) * 3;
+
+            if (isMortar)
+            {
+                pixels[index + 0] = 38;
+                pixels[index + 1] = 35;
+                pixels[index + 2] = 38;
+            }
+            else
+            {
+                pixels[index + 0] = static_cast<unsigned char>(95 + noise);
+                pixels[index + 1] = static_cast<unsigned char>(40 + noise / 2);
+                pixels[index + 2] = static_cast<unsigned char>(37 + noise / 3);
+            }
+        }
+    }
+
+    GLuint texture = 0;
+    glGenTextures(1, &texture);
+    glBindTexture(GL_TEXTURE_2D, texture);
+
+    glTexImage2D(
+        GL_TEXTURE_2D, 0, GL_RGB8,
+        size, size, 0,
+        GL_RGB, GL_UNSIGNED_BYTE,
+        pixels.data()
+    );
+
+    glGenerateMipmap(GL_TEXTURE_2D);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
+                    GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER,
+                    GL_LINEAR);
+
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    return texture;
+}
+
 
 GLuint compileShader(GLenum type, const char *source)
 {
@@ -83,9 +150,6 @@ GLuint compileShader(GLenum type, const char *source)
     return shader;
 }
 
-// ============================================================
-// SHADER PROGRAM
-// ============================================================
 
 GLuint createShaderProgram()
 {
@@ -200,9 +264,66 @@ GLuint createGlowShaderProgram()
     return program;
 }
 
-// ============================================================
-// GPU MESH
-// ============================================================
+
+GLuint createLedGlowShaderProgram()
+{
+    std::string vertexSource =
+        loadShaderSource("shaders/led_glow.vert");
+
+    std::string fragmentSource =
+        loadShaderSource("shaders/led_glow.frag");
+
+    if (vertexSource.empty() || fragmentSource.empty())
+    {
+        std::cerr << "Could not load glow shaders!" << std::endl;
+        return 0;
+    }
+
+    GLuint vertexShader = compileShader(
+        GL_VERTEX_SHADER,
+        vertexSource.c_str());
+
+    if (vertexShader == 0)
+        return 0;
+
+    GLuint fragmentShader = compileShader(
+        GL_FRAGMENT_SHADER,
+        fragmentSource.c_str());
+
+    if (fragmentShader == 0)
+    {
+        glDeleteShader(vertexShader);
+        return 0;
+    }
+
+    GLuint program = glCreateProgram();
+
+    glAttachShader(program, vertexShader);
+    glAttachShader(program, fragmentShader);
+    glLinkProgram(program);
+
+    GLint success = GL_FALSE;
+    glGetProgramiv(program, GL_LINK_STATUS, &success);
+
+    if (success != GL_TRUE)
+    {
+        char infoLog[1024];
+        glGetProgramInfoLog(
+            program, 1024, nullptr, infoLog);
+
+        std::cerr << "Glow shader linking failed: "
+                  << infoLog << std::endl;
+
+        glDeleteProgram(program);
+        program = 0;
+    }
+
+    glDeleteShader(vertexShader);
+    glDeleteShader(fragmentShader);
+
+    return program;
+}
+
 
 struct GpuMesh
 {
@@ -218,9 +339,6 @@ struct GpuMesh
     glm::mat4 originalModel = glm::mat4(1.0f);
 };
 
-// ============================================================
-// UPLOAD MESH TO GPU
-// ============================================================
 
 GpuMesh uploadMesh(const cgf::ScenePart &part)
 {
@@ -240,7 +358,6 @@ GpuMesh uploadMesh(const cgf::ScenePart &part)
 
     glBindVertexArray(gpuMesh.VAO);
 
-    // Upload vertex data
     glBindBuffer(GL_ARRAY_BUFFER, gpuMesh.VBO);
 
     glBufferData(
@@ -250,7 +367,6 @@ GpuMesh uploadMesh(const cgf::ScenePart &part)
         part.mesh.vertices.data(),
         GL_STATIC_DRAW);
 
-    // Upload index data
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, gpuMesh.EBO);
 
     glBufferData(
@@ -260,7 +376,6 @@ GpuMesh uploadMesh(const cgf::ScenePart &part)
         part.mesh.indices.data(),
         GL_STATIC_DRAW);
 
-    // Position: location 0
     glVertexAttribPointer(
         0,
         3,
@@ -271,7 +386,6 @@ GpuMesh uploadMesh(const cgf::ScenePart &part)
 
     glEnableVertexAttribArray(0);
 
-    // Normal: location 1
     glVertexAttribPointer(
         1,
         3,
@@ -282,7 +396,6 @@ GpuMesh uploadMesh(const cgf::ScenePart &part)
 
     glEnableVertexAttribArray(1);
 
-    // UV: location 2
     glVertexAttribPointer(
         2,
         2,
@@ -293,7 +406,6 @@ GpuMesh uploadMesh(const cgf::ScenePart &part)
 
     glEnableVertexAttribArray(2);
 
-    // Color: location 3
     glVertexAttribPointer(
         3,
         3,
@@ -352,10 +464,8 @@ void animateCentralSpotlight(
         return;
     }
 
-    // Central spotlight mounting point
     glm::vec3 pivot(0.0f, 5.5f, -2.5f);
 
-    // Calculate rotation angles from light direction
     float angleZ = std::atan2(
         direction.x,
         -direction.y);
@@ -389,9 +499,6 @@ void animateCentralSpotlight(
     mesh.model = parentTransform * mesh.originalModel;
 }
 
-// ============================================================
-// DELETE GPU RESOURCES
-// ============================================================
 
 void deleteGpuMeshes(std::vector<GpuMesh> &meshes)
 {
@@ -405,9 +512,6 @@ void deleteGpuMeshes(std::vector<GpuMesh> &meshes)
     meshes.clear();
 }
 
-// ============================================================
-// MAIN
-// ============================================================
 
 struct SpotLight
 {
@@ -416,14 +520,12 @@ struct SpotLight
     glm::vec3 color;
 };
 
-// Participant 4: smooth interpolation and camera view presets.
 float smoothStep01(float value)
 {
     value = std::max(0.0f, std::min(1.0f, value));
     return value * value * (3.0f - 2.0f * value);
 }
 
-// Calculate yaw and pitch for a camera at position looking at target.
 void pointCameraAt(Camera &camera, const glm::vec3 &position,
                    const glm::vec3 &target)
 {
@@ -433,11 +535,51 @@ void pointCameraAt(Camera &camera, const glm::vec3 &position,
     camera.setPose(position, yaw, pitch);
 }
 
+
+GLuint createSoundWaveProgram()
+{
+    std::string vs = loadShaderSource("shaders/sound_wave.vert");
+    std::string fs = loadShaderSource("shaders/sound_wave.frag");
+
+    if (vs.empty() || fs.empty())
+        return 0;
+
+    GLuint vertex = compileShader(GL_VERTEX_SHADER, vs.c_str());
+    GLuint fragment = compileShader(GL_FRAGMENT_SHADER, fs.c_str());
+
+    if (!vertex || !fragment)
+    {
+        glDeleteShader(vertex);
+        glDeleteShader(fragment);
+        return 0;
+    }
+
+    GLuint program = glCreateProgram();
+    glAttachShader(program, vertex);
+    glAttachShader(program, fragment);
+    glLinkProgram(program);
+
+    GLint linked = GL_FALSE;
+    glGetProgramiv(program, GL_LINK_STATUS, &linked);
+
+    if (!linked)
+    {
+        char log[1024];
+        glGetProgramInfoLog(program, 1024, nullptr, log);
+        std::cerr << "Sound wave shader error: " << log << std::endl;
+        glDeleteProgram(program);
+        program = 0;
+    }
+
+    glDeleteShader(vertex);
+    glDeleteShader(fragment);
+
+    return program;
+}
+
+
 int main()
 {
-    // --------------------------------------------------------
-    // 1. INITIALIZE GLFW
-    // --------------------------------------------------------
 
     if (!glfwInit())
     {
@@ -445,7 +587,6 @@ int main()
         return -1;
     }
 
-    // Request OpenGL 3.3 Core Profile
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
@@ -456,9 +597,6 @@ int main()
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
 
-    // --------------------------------------------------------
-    // 2. CREATE WINDOW
-    // --------------------------------------------------------
 
     GLFWwindow *window = glfwCreateWindow(
         1280,
@@ -479,9 +617,6 @@ int main()
 
     glfwSwapInterval(1);
 
-    // --------------------------------------------------------
-    // 3. INITIALIZE GLAD
-    // --------------------------------------------------------
 
     if (!gladLoadGLLoader(
             reinterpret_cast<GLADloadproc>(glfwGetProcAddress)))
@@ -495,9 +630,7 @@ int main()
     }
 
     std::cout << "OpenGL initialized successfully!" << std::endl;
-    // Initialize FPS text renderer.
     TextRenderer textRenderer;
-    // Initialize confetti effect.
     ConfettiEffect confetti;
 
     if (!confetti.initialize())
@@ -522,13 +655,50 @@ int main()
                   << "The 3D scene will continue without HUD."
                   << std::endl;
     }
-    // Enable depth testing
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
 
-    // --------------------------------------------------------
-    // 4. CREATE SHADER PROGRAM
-    // --------------------------------------------------------
+
+    GLuint soundWaveProgram = createSoundWaveProgram();
+
+    constexpr int waveSegments = 256;
+    std::vector<float> waveVertices;
+
+    for (int i = 0; i < waveSegments; ++i)
+    {
+        float angle = 2.0f * 3.14159265f * i / waveSegments;
+
+        waveVertices.push_back(std::cos(angle));
+        waveVertices.push_back(std::sin(angle));
+    }
+
+    GLuint waveVAO = 0;
+    GLuint waveVBO = 0;
+
+    glGenVertexArrays(1, &waveVAO);
+    glGenBuffers(1, &waveVBO);
+
+    glBindVertexArray(waveVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, waveVBO);
+
+    glBufferData(
+        GL_ARRAY_BUFFER,
+        waveVertices.size() * sizeof(float),
+        waveVertices.data(),
+        GL_STATIC_DRAW
+    );
+
+    glVertexAttribPointer(
+        0, 2, GL_FLOAT, GL_FALSE,
+        2 * sizeof(float), nullptr
+    );
+
+    glEnableVertexAttribArray(0);
+    glBindVertexArray(0);
+
+    float soundWaveTime = 0.0f;
+    float soundWaveVisibility = 0.0f;
+
 
     GLuint shaderProgram = createShaderProgram();
 
@@ -542,11 +712,27 @@ int main()
         return -1;
     }
 
+    GLuint brickTexture = createBrickTexture();
+
+    glUseProgram(shaderProgram);
+    glUniform1i(
+        glGetUniformLocation(shaderProgram, "uTexture"),
+        0
+    );
+
     GLuint glowShaderProgram = createGlowShaderProgram();
 
     if (glowShaderProgram == 0)
     {
         std::cerr << "Could not create glow shader program!" << std::endl;
+        return -1;
+    }
+
+    GLuint ledGlowShaderProgram = createLedGlowShaderProgram();
+
+    if (ledGlowShaderProgram == 0)
+    {
+        std::cerr << "Could not create LED glow shader!" << std::endl;
         return -1;
     }
 
@@ -603,25 +789,24 @@ int main()
 
     GLint cameraPosLocation = glGetUniformLocation(shaderProgram, "uCameraPos");
 
-    // --------------------------------------------------------
-    // 5. CREATE STAGE GEOMETRY
-    // --------------------------------------------------------
 
     std::vector<cgf::ScenePart> scene = cgf::createStageGeometry();
 
+    const glm::vec3 stageOffset(0.0f, 1.5f, 0.0f);
+
+    const glm::mat4 stageTransform =
+        glm::translate(glm::mat4(1.0f), stageOffset);
+
     cgf::ScenePart audienceFloor;
     audienceFloor.name = "Audience floor";
-    audienceFloor.mesh = cgf::makeBox({16.0f, 0.2f, 14.0f}, {0.10f, 0.11f, 0.15f});
-    audienceFloor.transform = glm::translate(glm::mat4(1), {0.0f, -0.1f, 12.0f});
+    audienceFloor.mesh = cgf::makeBox({18.0f, 0.2f, 32.0f}, {0.10f, 0.11f, 0.15f});
+    audienceFloor.transform = glm::translate(glm::mat4(1), {0.0f, -0.15f, 10.0f});
     scene.push_back(audienceFloor);
 
     std::cout << "Stage geometry created!" << std::endl;
     std::cout << "Number of scene objects: "
               << scene.size() << std::endl;
 
-    // --------------------------------------------------------
-    // 6. UPLOAD GEOMETRY TO GPU
-    // --------------------------------------------------------
 
     std::vector<GpuMesh> gpuMeshes;
 
@@ -644,13 +829,9 @@ int main()
 
     std::cout << "All meshes uploaded!" << std::endl;
 
-    // --------------------------------------------------------
-    // 7. CAMERA
-    // --------------------------------------------------------
 
     cgf::Audience audience;
     audience.initialize();
-    // AUDIO SYSTEM
 
     AudioManager audio;
 
@@ -691,11 +872,10 @@ int main()
     std::cout << "Audience: P pause | J energy | N density | H hide | Esc exit\n";
 
     Camera camera(
-        glm::vec3(19.0f, 15.0f, 29.0f),
-        -129.6f,
-        -24.3f);
+        glm::vec3(0.0f, 6.0f, 24.0f),
+        -90.0f,
+        -10.0f);
 
-    // Camera modes: manual / automatic cinematic route.
     constexpr float pi = 3.14159265358979323846f;
     bool cinematicMode = false;
     float cinematicTime = 0.0f;
@@ -710,7 +890,7 @@ int main()
 
     auto resetCamera = [&]()
     {
-        camera = Camera(glm::vec3(19.0f, 15.0f, 29.0f), -129.6f, -24.3f);
+        camera = Camera(glm::vec3(0.0f, 6.0f, 24.0f),-90.0f,-10.0f);
         cinematicMode = false;
         cinematicTime = 0.0f;
         cinematicBlend = 0.0f;
@@ -759,12 +939,11 @@ int main()
                                   cam->processMouseScroll(static_cast<float>(yOffset));
                           });
 
-    // Participant 4: lighting modes, animation speed and Wow moment.
-    int lightingMode = 1; // 1 colorful, 2 warm, 3 cool
+    int lightingMode = 1; 
     float showSpeed = 1.0f;
     float showTime = 0.0f;
+    float spotlightBrightness = 0.0f;
 
-    // BPM synchronized lighting
     float musicBPM = 120.0f;
     float beatTime = 0.0f;
     float beatPulse = 0.0f;
@@ -811,9 +990,6 @@ int main()
              glm::vec3(0.0f, -1.0f, 0.0f),
              glm::vec3(1.0f, 0.88f, 0.65f)}};
 
-    // --------------------------------------------------------
-    // 8. RENDERING LOOP
-    // --------------------------------------------------------
 
     while (!glfwWindowShouldClose(window))
     {
@@ -821,6 +997,21 @@ int main()
         const double now = glfwGetTime();
         const float deltaTime = static_cast<float>(now - lastFrameTime);
         lastFrameTime = now;
+        float targetBrightness = audio.isPlaying() ? 1.0f : 0.0f;
+
+        spotlightBrightness +=
+            (targetBrightness - spotlightBrightness) *
+            std::min(1.0f, deltaTime * 2.0f);
+
+        if (audio.isPlaying())
+            soundWaveTime += deltaTime;
+
+        float targetWaveVisibility = audio.isPlaying() ? 1.0f : 0.0f;
+
+        soundWaveVisibility +=
+            (targetWaveVisibility - soundWaveVisibility) *
+            std::min(1.0f, deltaTime * 4.0f);
+
         confetti.update(deltaTime);
 
         const bool fast =
@@ -862,9 +1053,6 @@ int main()
             return edge;
         };
 
-        // --------------------------------------------------------
-        // MUSIC PLAY / PAUSE
-        // --------------------------------------------------------
 
         if (pressed(GLFW_KEY_M, previousMusic))
         {
@@ -907,9 +1095,6 @@ int main()
                       << std::endl;
         }
 
-        // --------------------------------------------------------
-        // VOLUME CONTROL
-        // --------------------------------------------------------
 
         const bool shiftPressed =
             glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS ||
@@ -983,7 +1168,7 @@ int main()
         {
             wowRemaining = 0.0f;
             wowElapsed = 0.0f;
-            switchToView({19.0f, 15.0f, 29.0f}, {0.0f, 1.5f, 6.0f});
+            switchToView({0.0f, 6.0f, 24.0f}, {0.0f, 2.0f, 0.0f});
         }
         const bool view2Fn = pressed(GLFW_KEY_F2, previousF2);
         const bool view2Num = pressed(GLFW_KEY_5, previous5);
@@ -1045,7 +1230,7 @@ int main()
             const float orbit = std::max(0.0f, cinematicTime - 1.7f);
             const float theta = orbit * 0.18f;
             const glm::vec3 desiredPosition(
-                10.0f * std::cos(theta + 0.9f),
+                6.5f * std::cos(theta + 0.9f),
                 7.2f + 1.6f * std::sin(orbit * 0.35f),
                 17.0f + 6.0f * std::sin(theta + 0.9f));
             const glm::vec3 position = glm::mix(
@@ -1248,7 +1433,6 @@ int main()
         if (wowStrength > 0.0f)
             lights[4].color = glm::mix(lights[4].color,
                                        glm::vec3(2.3f, 2.0f, 1.6f), wowStrength);
-        // Beat synchronized brightness pulse for central spotlight
         lights[4].color *= (1.0f + beatPulse * 0.65f);
 
         int spotlightNumbers[4] = {1, 2, 4, 5};
@@ -1303,15 +1487,19 @@ int main()
 
             for (int i = 0; i < 5; i++)
             {
+
+                glm::vec3 worldLightPosition = lights[i].position + stageOffset;
+
                 std::string prefix =
                     "uLights[" + std::to_string(i) + "].";
+
 
                 glUniform3fv(
                     glGetUniformLocation(
                         shaderProgram,
                         (prefix + "position").c_str()),
                     1,
-                    glm::value_ptr(lights[i].position));
+                    glm::value_ptr(worldLightPosition));
 
                 glUniform3fv(
                     glGetUniformLocation(
@@ -1320,12 +1508,15 @@ int main()
                     1,
                     glm::value_ptr(lights[i].direction));
 
-                glUniform3fv(
-                    glGetUniformLocation(
-                        shaderProgram,
-                        (prefix + "color").c_str()),
-                    1,
-                    glm::value_ptr(lights[i].color));
+                glm::vec3 activeLightColor =
+                        lights[i].color * spotlightBrightness;
+
+                    glUniform3fv(
+                        glGetUniformLocation(
+                            shaderProgram,
+                            (prefix + "color").c_str()),
+                        1,
+                        glm::value_ptr(activeLightColor));
 
                 float innerAngle = (i == 4) ? 40.0f : 25.0f;
                 float outerAngle = (i == 4) ? 50.0f : 35.0f;
@@ -1357,13 +1548,26 @@ int main()
 
             for (const GpuMesh &mesh : gpuMeshes)
             {
+                bool isEnvironment =
+                    mesh.name.find("Club ") == 0 ||
+                    mesh.name == "Audience floor";
+
+                glm::mat4 worldModel = isEnvironment
+                    ? mesh.model
+                    : stageTransform * mesh.model;
+
                 glUniformMatrix4fv(
                     modelLocation,
                     1,
                     GL_FALSE,
-                    glm::value_ptr(mesh.model));
+                    glm::value_ptr(worldModel));
 
                 glm::vec3 emissionColor(0.0f);
+
+                if (mesh.name.find("Stage LED") == 0)
+                {
+                    emissionColor = glm::vec3(0.02f, 0.65f, 0.95f);
+                }
 
                 int bulbNumbers[5] = {1, 2, 4, 5, 3};
 
@@ -1374,7 +1578,10 @@ int main()
 
                     if (mesh.name == bulbName)
                     {
-                        emissionColor = lights[i].color * (1.5f + 0.65f * wowStrength);
+                        emissionColor =
+                            lights[i].color *
+                            (1.5f + 0.65f * wowStrength) *
+                            spotlightBrightness;
                         break;
                     }
                 }
@@ -1383,6 +1590,27 @@ int main()
                     emissionLocation,
                     1,
                     glm::value_ptr(emissionColor));
+
+
+                bool useBrickTexture =
+                    mesh.name.find("Club ") == 0 &&
+                    mesh.name.find("Wall") != std::string::npos;
+
+                glUniform1i(
+                    glGetUniformLocation(shaderProgram, "uUseTexture"),
+                    useBrickTexture ? 1 : 0
+                );
+
+                glUniform2f(
+                    glGetUniformLocation(shaderProgram, "uTextureScale"),
+                    4.0f, 2.0f
+                );
+
+                glActiveTexture(GL_TEXTURE0);
+                glBindTexture(
+                    GL_TEXTURE_2D,
+                    useBrickTexture ? brickTexture : 0
+                );    
 
                 glBindVertexArray(mesh.VAO);
 
@@ -1393,12 +1621,89 @@ int main()
                     nullptr);
             }
 
+            glUniform1i(
+                glGetUniformLocation(shaderProgram, "uUseTexture"),
+                GL_FALSE
+            );
+
             if (audienceVisible)
                 audience.draw(shaderProgram, audienceTime, audienceEnergetic || wowStrength > 0.2f);
+
+
+            if (soundWaveProgram != 0 && soundWaveVisibility > 0.01f)
+            {
+                glEnable(GL_BLEND);
+                glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+                glDepthMask(GL_FALSE);
+
+                glUseProgram(soundWaveProgram);
+                glBindVertexArray(waveVAO);
+
+                GLint mvpLoc = glGetUniformLocation(soundWaveProgram, "uMVP");
+                GLint radiusLoc = glGetUniformLocation(soundWaveProgram, "uRadius");
+                GLint timeLoc = glGetUniformLocation(soundWaveProgram, "uTime");
+                GLint phaseLoc = glGetUniformLocation(soundWaveProgram, "uPhase");
+                GLint colorOffsetLoc = glGetUniformLocation(soundWaveProgram, "uColorOffset");
+                GLint alphaLoc = glGetUniformLocation(soundWaveProgram, "uAlpha");
+
+                glUniform1f(timeLoc, soundWaveTime);
+
+                for (int speaker = 0; speaker < 2; ++speaker)
+                {
+                    float x = speaker == 0 ? -7.0f : 7.0f;
+
+
+                    for (int i = 0; i < 4; ++i)
+                    {
+                        float phase = std::fmod(
+                            soundWaveTime * 0.8f + i * 0.25f,
+                            1.0f
+                        );
+
+                        glUniform1f(phaseLoc, i * 0.35f + speaker * 0.2f);
+                        float colorProgress = soundWaveTime * (5.0f / 5.0f);
+
+                        float waveColor = colorProgress - phase * 5.0f;
+
+                        glUniform1f(colorOffsetLoc, waveColor);
+
+                        float radius = 0.45f + phase * 2.0f;
+                        float z = 1.7f + phase * 3.5f;
+
+                        float alpha = (1.0f - phase) *
+                                    0.65f * soundWaveVisibility;
+
+                        glm::mat4 model(1.0f);
+                        model = glm::translate(
+                            model,
+                            glm::vec3(x, 3.2f, z)
+                        );
+
+                        glm::mat4 mvp = projection * view * model;
+
+                        glUniformMatrix4fv(
+                            mvpLoc, 1, GL_FALSE, glm::value_ptr(mvp)
+                        );
+
+                        glUniform1f(radiusLoc, radius);
+                        glUniform1f(alphaLoc, alpha);
+
+                        glLineWidth(2.0f);
+                        glDrawArrays(GL_LINE_LOOP, 0, waveSegments);
+                    }
+                }
+
+                glBindVertexArray(0);
+                glDepthMask(GL_TRUE);
+                glDisable(GL_BLEND);
+            }
+
+
+
             glBindVertexArray(0);
 
             glEnable(GL_BLEND);
-            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE);
             glDepthMask(GL_FALSE);
 
             glUseProgram(glowShaderProgram);
@@ -1423,31 +1728,113 @@ int main()
 
             for (int i = 0; i < 5; i++)
             {
+                glm::vec3 worldLightPosition =
+                    lights[i].position + stageOffset;
+
                 glUniform3fv(
                     glGetUniformLocation(
                         glowShaderProgram,
                         "uGlowPosition"),
                     1,
-                    glm::value_ptr(lights[i].position));
+                    glm::value_ptr(worldLightPosition));
+
+                glm::vec3 glowColor =
+                    lights[i].color * spotlightBrightness;
 
                 glUniform3fv(
                     glGetUniformLocation(
                         glowShaderProgram,
                         "uGlowColor"),
                     1,
-                    glm::value_ptr(lights[i].color));
+                    glm::value_ptr(glowColor));
 
                 glDrawArrays(GL_TRIANGLES, 0, 6);
             }
+
+            glUseProgram(ledGlowShaderProgram);
+
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+
+            glUniformMatrix4fv(
+                glGetUniformLocation(ledGlowShaderProgram, "uView"),
+                1, GL_FALSE, glm::value_ptr(view));
+
+            glUniformMatrix4fv(
+                glGetUniformLocation(ledGlowShaderProgram, "uProjection"),
+                1, GL_FALSE, glm::value_ptr(projection));
+
+            glm::vec3 ledGlowColor(0.02f, 0.65f, 0.95f);
+
+            glUniform3fv(
+                glGetUniformLocation(ledGlowShaderProgram, "uColor"),
+                1, glm::value_ptr(ledGlowColor));
+
+            float ledIntensity = 0.85f + wowStrength * 0.3f;
+
+            glUniform1f(
+                glGetUniformLocation(ledGlowShaderProgram, "uIntensity"),
+                ledIntensity);
+
+            glBindVertexArray(glowVAO);
+
+            auto drawLedGlow = [&](glm::vec3 center,
+                                glm::vec3 axis,
+                                float length,
+                                float height)
+            {
+                center += stageOffset;
+
+                glUniform3fv(
+                    glGetUniformLocation(ledGlowShaderProgram, "uCenter"),
+                    1, glm::value_ptr(center));
+
+                glUniform3fv(
+                    glGetUniformLocation(ledGlowShaderProgram, "uAxis"),
+                    1, glm::value_ptr(axis));
+
+                glUniform1f(
+                    glGetUniformLocation(ledGlowShaderProgram, "uLength"),
+                    length);
+
+                glUniform1f(
+                    glGetUniformLocation(ledGlowShaderProgram, "uHeight"),
+                    height);
+
+                glDrawArrays(GL_TRIANGLES, 0, 6);
+            };
+
+            drawLedGlow(
+                {0.0f, -0.18f, 5.22f},
+                {1.0f, 0.0f, 0.0f},
+                16.1f,
+                0.65f);
+
+            drawLedGlow(
+                {0.0f, -1.32f, 5.22f},
+                {1.0f, 0.0f, 0.0f},
+                16.1f,
+                0.50f);
+
+            drawLedGlow(
+                {-8.13f, -0.18f, 0.0f},
+                {0.0f, 0.0f, 1.0f},
+                10.1f,
+                0.65f);
+
+            drawLedGlow(
+                {8.13f, -0.18f, 0.0f},
+                {0.0f, 0.0f, 1.0f},
+                10.1f,
+                0.65f);
+
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
             glBindVertexArray(0);
 
             glDepthMask(GL_TRUE);
             glDisable(GL_BLEND);
-            // Render confetti over the concert stage.
             confetti.render(view, projection);
         }
-        // Draw FPS HUD over the 3D scene.
 
         if (textRenderer.isInitialized() && width > 0 && height > 0)
         {
@@ -1463,14 +1850,8 @@ int main()
 
         glfwSwapBuffers(window);
         glfwPollEvents();
-
-        glfwSwapBuffers(window);
-        glfwPollEvents();
     }
 
-    // --------------------------------------------------------
-    // 9. CLEANUP
-    // --------------------------------------------------------
 
     audience.release();
     deleteGpuMeshes(gpuMeshes);
@@ -1480,10 +1861,16 @@ int main()
     textRenderer.cleanup();
 
     glDeleteBuffers(1, &glowVBO);
+    glDeleteTextures(1, &brickTexture);
     glDeleteVertexArrays(1, &glowVAO);
 
     glDeleteProgram(glowShaderProgram);
+    glDeleteProgram(ledGlowShaderProgram);
     glDeleteProgram(shaderProgram);
+
+    glDeleteVertexArrays(1, &waveVAO);
+    glDeleteBuffers(1, &waveVBO);
+    glDeleteProgram(soundWaveProgram);
 
     glfwDestroyWindow(window);
     glfwTerminate();

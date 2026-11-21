@@ -18,6 +18,7 @@ uniform float uAudienceEnergy;
 out vec3 vColor;
 out vec3 vNormal;
 out vec3 vWorldPos;
+out vec2 vUV;
 
 void main()
 {
@@ -41,5 +42,6 @@ void main()
         vColor = aColor;
     }
     vWorldPos = worldPosition.xyz;
+    vUV = aUV;
     gl_Position = uProjection * uView * worldPosition;
 }

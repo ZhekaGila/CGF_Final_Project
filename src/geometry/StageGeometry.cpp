@@ -8,6 +8,7 @@
 #include <vector>
 
 namespace cgf {
+    
 
 std::vector<ScenePart> createStageGeometry()
 {
@@ -245,13 +246,137 @@ std::vector<ScenePart> createStageGeometry()
     // 1. STAGE FLOOR AND PODIUM
     // ------------------------------------------------------------
 
-    const glm::vec3 darkFloor(0.12f, 0.12f, 0.16f);
-    const glm::vec3 stageColor(0.25f, 0.25f, 0.30f);
+    const glm::vec3 darkFloor(0.16f, 0.17f, 0.20f);
+    const glm::vec3 stageColor(0.09f, 0.09f, 0.11f);
 
     addBox("Stage Floor",
-           glm::vec3(16.0f, 0.4f, 10.0f),
-           darkFloor,
-           glm::vec3(0.0f, -0.2f, 0.0f));
+        glm::vec3(16.0f, 1.9f, 10.0f),
+        darkFloor,
+        glm::vec3(0.0f, -0.95f, 0.0f));
+
+    const glm::vec3 stageMetal(0.48f, 0.50f, 0.55f);
+    const glm::vec3 stagePanel(0.08f, 0.08f, 0.10f);
+    const glm::vec3 stageFrame(0.28f, 0.30f, 0.34f);
+
+    addBox("Stage Upper Edge",
+        glm::vec3(16.1f, 0.12f, 0.15f),
+        stageMetal,
+        glm::vec3(0.0f, -0.06f, 5.0f));
+
+    addBox("Stage Lower Edge",
+        glm::vec3(16.1f, 0.12f, 0.15f),
+        stageMetal,
+        glm::vec3(0.0f, -1.44f, 5.0f));
+
+    for (int i = 0; i < 8; i++)
+    {
+        float x = -7.0f + i * 2.0f;
+
+        addBox("Stage Front Panel " + std::to_string(i),
+            glm::vec3(1.88f, 1.12f, 0.08f),
+            stagePanel,
+            glm::vec3(x, -0.75f, 5.05f));
+    }
+
+    for (int i = 0; i < 9; i++)
+    {
+        float x = -8.0f + i * 2.0f;
+
+        addBox("Stage Panel Frame " + std::to_string(i),
+            glm::vec3(0.08f, 1.30f, 0.12f),
+            stageFrame,
+            glm::vec3(x, -0.75f, 5.08f));
+    }
+
+    addBox("Stage Left Edge",
+        glm::vec3(0.12f, 0.12f, 10.0f),
+        stageMetal,
+        glm::vec3(-8.0f, -0.06f, 0.0f));
+
+    addBox("Stage Right Edge",
+        glm::vec3(0.12f, 0.12f, 10.0f),
+        stageMetal,
+        glm::vec3(8.0f, -0.06f, 0.0f));    
+
+    const glm::vec3 ledColor(0.05f, 0.35f, 0.65f);
+
+    addBox("Stage LED Front",
+        glm::vec3(15.9f, 0.045f, 0.06f),
+        ledColor,
+        glm::vec3(0.0f, -0.18f, 5.18f));
+
+    addBox("Stage LED Left",
+        glm::vec3(0.06f, 0.045f, 9.9f),
+        ledColor,
+        glm::vec3(-8.08f, -0.18f, 0.0f));
+
+    addBox("Stage LED Right",
+        glm::vec3(0.06f, 0.045f, 9.9f),
+        ledColor,
+        glm::vec3(8.08f, -0.18f, 0.0f));
+
+    addBox("Stage LED Bottom",
+        glm::vec3(15.9f, 0.035f, 0.06f),
+        ledColor,
+        glm::vec3(0.0f, -1.32f, 5.18f));
+
+
+    const glm::vec3 stairColor(0.11f, 0.12f, 0.15f);
+    const glm::vec3 stairMetal(0.45f, 0.48f, 0.52f);
+
+
+    for (int i = 0; i < 3; i++)
+    {
+        float stepHeight = 0.5f * (i + 1);
+        float stepZ = 7.0f - i * 0.65f;
+
+        addBox(
+            "Stage Stair " + std::to_string(i),
+            glm::vec3(2.0f, stepHeight, 0.65f),
+            stairColor,
+            glm::vec3(5.5f, -1.5f + stepHeight * 0.5f, stepZ)
+        );
+
+        addBox(
+            "Stage Stair Edge " + std::to_string(i),
+            glm::vec3(2.02f, 0.045f, 0.06f),
+            stairMetal,
+            glm::vec3(5.5f, -1.5f + stepHeight, stepZ + 0.30f)
+        );
+    }
+
+    const glm::vec3 railingColor(0.25f, 0.27f, 0.31f);
+
+    for (float x : {4.4f, 6.6f})
+    {
+        addBox(
+            "Stage Stair Front Post",
+            glm::vec3(0.07f, 0.95f, 0.07f),
+            railingColor,
+            glm::vec3(x, -0.525f, 7.0f)
+        );
+
+        addBox(
+            "Stage Stair Back Post",
+            glm::vec3(0.07f, 0.95f, 0.07f),
+            railingColor,
+            glm::vec3(x, 0.475f, 5.65f)
+        );
+
+        addBox(
+            "Stage Stair Handrail",
+            glm::vec3(0.07f, 0.07f, 2.15f),
+            railingColor,
+            glm::vec3(x, 0.0f, 6.325f)
+        );
+
+        parts.back().transform = glm::rotate(
+            parts.back().transform,
+            glm::radians(36.0f),
+            glm::vec3(1.0f, 0.0f, 0.0f)
+        );
+    }
+
 
     addBox("Front Podium",
            glm::vec3(5.0f, 0.3f, 1.5f),
@@ -931,7 +1056,351 @@ addSphere("Guitar Pickguard",
               skinColor, guitaristRightWrist,
               glm::vec3(0.105f, 0.10f, 0.085f));
 
+    const glm::vec3 clubWallColor(0.32f, 0.23f, 0.20f);
+
+    addBox("Club Left Wall",
+        glm::vec3(0.4f, 10.0f, 32.0f),
+        clubWallColor,
+        glm::vec3(-9.0f, 5.0f, 10.0f));
+
+    addBox("Club Right Wall",
+        glm::vec3(0.4f, 10.0f, 32.0f),
+        clubWallColor,
+        glm::vec3(9.0f, 5.0f, 10.0f));
+
+    addBox("Club Front Wall",
+        glm::vec3(18.0f, 10.0f, 0.4f),
+        clubWallColor,
+        glm::vec3(0.0f, 5.0f, -6.0f));
+
+    addBox("Club Rear Left Wall",
+        glm::vec3(7.5f, 10.0f, 0.4f),
+        clubWallColor,
+        glm::vec3(-5.25f, 5.0f, 26.0f));
+
+    addBox("Club Rear Right Wall",
+        glm::vec3(7.5f, 10.0f, 0.4f),
+        clubWallColor,
+        glm::vec3(5.25f, 5.0f, 26.0f));
+
+    addBox("Club Entrance Top",
+        glm::vec3(3.0f, 6.5f, 0.4f),
+        clubWallColor,
+        glm::vec3(0.0f, 6.75f, 26.0f));
+
+
+    const glm::vec3 speakerBody(0.045f, 0.045f, 0.055f);
+    const glm::vec3 speakerFront(0.085f, 0.09f, 0.105f);
+    const glm::vec3 speakerCone(0.015f, 0.018f, 0.025f);
+    const glm::vec3 speakerRing(0.38f, 0.40f, 0.43f);
+
+    for (int side = -1; side <= 1; side += 2)
+    {
+        float x = side * 7.0f;
+        float z = 1.0f;
+
+        std::string prefix =
+            side < 0 ? "Left PA" : "Right PA";
+
+        addBox(
+            prefix + " Cabinet",
+            glm::vec3(1.3f, 3.4f, 1.1f),
+            speakerBody,
+            glm::vec3(x, 1.7f, z)
+        );
+
+        addBox(
+            prefix + " Grille",
+            glm::vec3(1.16f, 3.2f, 0.04f),
+            speakerFront,
+            glm::vec3(x, 1.7f, z + 0.57f)
+        );
+
+        for (int i = 0; i < 2; i++)
+        {
+            float y = 1.05f + i * 1.3f;
+
+            addCylinderAlongZ(
+                prefix + " Woofer Ring " + std::to_string(i),
+                0.43f,
+                0.035f,
+                speakerRing,
+                glm::vec3(x, y, z + 0.61f)
+            );
+
+            addCylinderAlongZ(
+                prefix + " Woofer Cone " + std::to_string(i),
+                0.34f,
+                0.045f,
+                speakerCone,
+                glm::vec3(x, y, z + 0.64f)
+            );
+
+            addSphere(
+                prefix + " Woofer Center " + std::to_string(i),
+                speakerFront,
+                glm::vec3(x, y, z + 0.675f),
+                glm::vec3(0.12f, 0.12f, 0.035f)
+            );
+        }
+
+        addBox(
+            prefix + " Tweeter",
+            glm::vec3(0.48f, 0.22f, 0.055f),
+            speakerCone,
+            glm::vec3(x, 3.0f, z + 0.62f)
+        );
+
+        addBox(
+            prefix + " Base",
+            glm::vec3(1.45f, 0.10f, 1.25f),
+            speakerRing,
+            glm::vec3(x, 0.05f, z)
+        );
+    }    
+
+
+    for (int i = 0; i < 3; i++)
+    {
+        float x = -3.5f + i * 3.5f;
+        float z = 3.6f;
+
+        std::string prefix =
+            "Stage Monitor " + std::to_string(i);
+
+        addBox(
+            prefix + " Cabinet",
+            glm::vec3(1.3f, 0.55f, 0.85f),
+            speakerBody,
+            glm::vec3(x, 0.275f, z)
+        );
+
+        addBox(
+            prefix + " Grille",
+            glm::vec3(1.2f, 0.04f, 0.72f),
+            speakerFront,
+            glm::vec3(x, 0.56f, z)
+        );
+
+        parts.back().transform = glm::rotate(
+            parts.back().transform,
+            glm::radians(-18.0f),
+            glm::vec3(1.0f, 0.0f, 0.0f)
+        );
+
+        addBox(
+            prefix + " Trim",
+            glm::vec3(1.32f, 0.06f, 0.06f),
+            speakerRing,
+            glm::vec3(x, 0.20f, z + 0.44f)
+        );
+    }
+
+
+    const glm::vec3 trussMetal(0.42f, 0.45f, 0.50f);
+
+    auto trussBeam = [&](const std::string& name,
+                        const glm::vec3& a,
+                        const glm::vec3& b,
+                        float radius = 0.045f)
+    {
+        addLimb3D(name, a, b, radius, trussMetal);
+    };
+
+    const float trussY = 5.65f;
+    const float trussZ = -2.5f;
+    const float trussDepth = 0.45f;
+
+    for (float z : {trussZ - trussDepth / 2.0f,
+                    trussZ + trussDepth / 2.0f})
+    {
+        trussBeam(
+            "Truss Horizontal Upper",
+            {-6.2f, trussY + 0.22f, z},
+            { 6.2f, trussY + 0.22f, z}
+        );
+
+        trussBeam(
+            "Truss Horizontal Lower",
+            {-6.2f, trussY - 0.22f, z},
+            { 6.2f, trussY - 0.22f, z}
+        );
+    }
+
+    for (int i = 0; i < 12; i++)
+    {
+        float x1 = -6.0f + i * 1.0f;
+        float x2 = x1 + 1.0f;
+
+        float y1 = trussY - 0.22f;
+        float y2 = trussY + 0.22f;
+
+        trussBeam(
+            "Truss Diagonal",
+            {x1, y1, trussZ + 0.23f},
+            {x2, y2, trussZ + 0.23f},
+            0.025f
+        );
+
+        trussBeam(
+            "Truss Diagonal Back",
+            {x1, y2, trussZ - 0.23f},
+            {x2, y1, trussZ - 0.23f},
+            0.025f
+        );
+    }
+
+    for (float x : {-6.2f, 6.2f})
+    {
+        for (float z : {trussZ - 0.23f, trussZ + 0.23f})
+        {
+            trussBeam(
+                "Truss Vertical Support",
+                {x, 0.0f, z},
+                {x, 5.87f, z}
+            );
+        }
+
+        for (int i = 0; i < 6; i++)
+        {
+            float y1 = i * 0.95f;
+            float y2 = y1 + 0.95f;
+
+            trussBeam(
+                "Truss Vertical Diagonal",
+                {x, y1, trussZ - 0.23f},
+                {x, y2, trussZ + 0.23f},
+                0.025f
+            );
+        }
+    }
+
+
+    for (int i = 0; i <= 12; i++)
+    {
+        float x = -6.0f + i * 1.0f;
+
+        for (float y : {trussY - 0.22f, trussY + 0.22f})
+        {
+            trussBeam(
+                "Truss Cross Connector",
+                {x, y, trussZ - 0.23f},
+                {x, y, trussZ + 0.23f},
+                0.025f
+            );
+        }
+    }
+
+
+
+    const glm::vec3 curtainDark(0.025f, 0.025f, 0.035f);
+    const glm::vec3 curtainFold(0.065f, 0.055f, 0.075f);
+
+    addBox(
+        "Stage Backdrop Curtain",
+        glm::vec3(14.5f, 5.0f, 0.12f),
+        curtainDark,
+        glm::vec3(0.0f, 3.0f, -4.45f)
+    );
+
+    for (int i = 0; i < 29; i++)
+    {
+        float x = -7.0f + i * 0.5f;
+
+        addBox(
+            "Stage Curtain Fold " + std::to_string(i),
+            glm::vec3(0.12f, 5.0f, 0.18f),
+            curtainFold,
+            glm::vec3(x, 3.0f, -4.32f)
+        );
+    }
+
+
+
+    const glm::vec3 bannerColor(0.075f, 0.035f, 0.085f);
+    const glm::vec3 bannerFrame(0.45f, 0.46f, 0.50f);
+    const glm::vec3 bannerAccent(0.65f, 0.12f, 0.22f);
+
+    addBox(
+        "Stage Band Banner",
+        glm::vec3(5.0f, 2.3f, 0.10f),
+        bannerColor,
+        glm::vec3(0.0f, 3.7f, -4.12f)
+    );
+
+    addBox(
+        "Stage Banner Top Frame",
+        glm::vec3(5.2f, 0.08f, 0.15f),
+        bannerFrame,
+        glm::vec3(0.0f, 4.89f, -4.05f)
+    );
+
+    addBox(
+        "Stage Banner Bottom Frame",
+        glm::vec3(5.2f, 0.08f, 0.15f),
+        bannerFrame,
+        glm::vec3(0.0f, 2.51f, -4.05f)
+    );
+
+    for (float x : {-2.55f, 2.55f})
+    {
+        addBox(
+            "Stage Banner Side Frame",
+            glm::vec3(0.08f, 2.4f, 0.15f),
+            bannerFrame,
+            glm::vec3(x, 3.7f, -4.05f)
+        );
+    }
+
+    for (int i = 0; i < 5; i++)
+    {
+        float x = -1.6f + i * 0.8f;
+
+        addRotatedBox(
+            "Stage Banner Stripe " + std::to_string(i),
+            glm::vec3(0.12f, 1.3f, 0.035f),
+            bannerAccent,
+            glm::vec3(x, 3.7f, -4.045f),
+            30.0f
+        );
+    }
+
+
+
+    const glm::vec3 sidePanelColor(0.22f, 0.035f, 0.055f);
+    const glm::vec3 sidePanelFrame(0.35f, 0.35f, 0.40f);
+
+    for (float x : {-5.5f, 5.5f})
+    {
+        addBox(
+            "Stage Side Backdrop Panel",
+            glm::vec3(1.5f, 3.5f, 0.10f),
+            sidePanelColor,
+            glm::vec3(x, 3.0f, -4.08f)
+        );
+
+        for (float y : {1.2f, 4.8f})
+        {
+            addBox(
+                "Stage Side Panel Horizontal Frame",
+                glm::vec3(1.65f, 0.07f, 0.14f),
+                sidePanelFrame,
+                glm::vec3(x, y, -4.01f)
+            );
+        }
+
+        for (float offset : {-0.8f, 0.8f})
+        {
+            addBox(
+                "Stage Side Panel Vertical Frame",
+                glm::vec3(0.07f, 3.6f, 0.14f),
+                sidePanelFrame,
+                glm::vec3(x + offset, 3.0f, -4.01f)
+            );
+        }
+    }
+
     return parts;
 }
 
-} // namespace cgf
+}

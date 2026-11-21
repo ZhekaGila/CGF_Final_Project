@@ -6,6 +6,12 @@ in vec3 vColor;
 in vec3 vNormal;
 in vec3 vWorldPos;
 
+in vec2 vUV;
+
+uniform sampler2D uTexture;
+uniform bool uUseTexture;
+uniform vec2 uTextureScale;
+
 out vec4 FragColor;
 
 uniform vec3 uCameraPos;
@@ -33,7 +39,11 @@ vec3 calculateSpotLight(
     vec3 lightDir = normalize(toLight);
 
     float diff = max(dot(normal, lightDir), 0.0);
-    vec3 diffuse = diff * vColor * light.color;
+    vec3 baseColor = uUseTexture
+    ? texture(uTexture, vUV * uTextureScale).rgb
+    : vColor;
+
+    vec3 diffuse = diff * baseColor * light.color;
 
     vec3 halfwayDir = normalize(lightDir + viewDir);
 
@@ -76,7 +86,11 @@ void main()
     vec3 normal = normalize(vNormal);
     vec3 viewDir = normalize(uCameraPos - vWorldPos);
 
-    vec3 result = 0.40 * vColor;
+    vec3 baseColor = uUseTexture
+    ? texture(uTexture, vUV * uTextureScale).rgb
+    : vColor;
+
+    vec3 result = 0.40 * baseColor;
 
     for (int i = 0; i < NUM_LIGHTS; i++)
     {
