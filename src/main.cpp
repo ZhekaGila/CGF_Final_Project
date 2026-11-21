@@ -53,6 +53,75 @@ std::string loadShaderSource(const std::string &filePath)
     return buffer.str();
 }
 
+GLuint createBrickTexture()
+{
+    constexpr int size = 512;
+    constexpr int brickWidth = 128;
+    constexpr int brickHeight = 64;
+    constexpr int mortar = 5;
+
+    std::vector<unsigned char> pixels(size * size * 3);
+
+    for (int y = 0; y < size; ++y)
+    {
+        int row = y / brickHeight;
+        int localY = y % brickHeight;
+        int offset = (row % 2) * (brickWidth / 2);
+
+        for (int x = 0; x < size; ++x)
+        {
+            int localX = (x + offset) % brickWidth;
+
+            bool isMortar =
+                localX < mortar ||
+                localY < mortar;
+
+            int noise = (x * 17 + y * 31 +
+                         (x * y) % 97) % 23;
+
+            int index = (y * size + x) * 3;
+
+            if (isMortar)
+            {
+                pixels[index + 0] = 38;
+                pixels[index + 1] = 35;
+                pixels[index + 2] = 38;
+            }
+            else
+            {
+                pixels[index + 0] = static_cast<unsigned char>(95 + noise);
+                pixels[index + 1] = static_cast<unsigned char>(40 + noise / 2);
+                pixels[index + 2] = static_cast<unsigned char>(37 + noise / 3);
+            }
+        }
+    }
+
+    GLuint texture = 0;
+    glGenTextures(1, &texture);
+    glBindTexture(GL_TEXTURE_2D, texture);
+
+    glTexImage2D(
+        GL_TEXTURE_2D, 0, GL_RGB8,
+        size, size, 0,
+        GL_RGB, GL_UNSIGNED_BYTE,
+        pixels.data()
+    );
+
+    glGenerateMipmap(GL_TEXTURE_2D);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
+                    GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER,
+                    GL_LINEAR);
+
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    return texture;
+}
+
 
 GLuint compileShader(GLenum type, const char *source)
 {
@@ -558,6 +627,14 @@ int main()
 
         return -1;
     }
+
+    GLuint brickTexture = createBrickTexture();
+
+    glUseProgram(shaderProgram);
+    glUniform1i(
+        glGetUniformLocation(shaderProgram, "uTexture"),
+        0
+    );
 
     GLuint glowShaderProgram = createGlowShaderProgram();
 
@@ -1418,6 +1495,27 @@ int main()
                     1,
                     glm::value_ptr(emissionColor));
 
+
+                bool useBrickTexture =
+                    mesh.name.find("Club ") == 0 &&
+                    mesh.name.find("Wall") != std::string::npos;
+
+                glUniform1i(
+                    glGetUniformLocation(shaderProgram, "uUseTexture"),
+                    useBrickTexture ? 1 : 0
+                );
+
+                glUniform2f(
+                    glGetUniformLocation(shaderProgram, "uTextureScale"),
+                    4.0f, 2.0f
+                );
+
+                glActiveTexture(GL_TEXTURE0);
+                glBindTexture(
+                    GL_TEXTURE_2D,
+                    useBrickTexture ? brickTexture : 0
+                );    
+
                 glBindVertexArray(mesh.VAO);
 
                 glDrawElements(
@@ -1426,6 +1524,11 @@ int main()
                     GL_UNSIGNED_INT,
                     nullptr);
             }
+
+            glUniform1i(
+                glGetUniformLocation(shaderProgram, "uUseTexture"),
+                GL_FALSE
+            );
 
             if (audienceVisible)
                 audience.draw(shaderProgram, audienceTime, audienceEnergetic || wowStrength > 0.2f);
@@ -1578,9 +1681,6 @@ int main()
         glfwPollEvents();
     }
 
-    // --------------------------------------------------------
-    // 9. CLEANUP
-    // --------------------------------------------------------
 
     audience.release();
     deleteGpuMeshes(gpuMeshes);
@@ -1590,6 +1690,7 @@ int main()
     textRenderer.cleanup();
 
     glDeleteBuffers(1, &glowVBO);
+    glDeleteTextures(1, &brickTexture);
     glDeleteVertexArrays(1, &glowVAO);
 
     glDeleteProgram(glowShaderProgram);
