@@ -4,7 +4,6 @@ layout(location = 0) in vec3 aPosition;
 layout(location = 1) in vec3 aNormal;
 layout(location = 2) in vec2 aUV;
 layout(location = 3) in vec3 aColor;
-// These attributes advance once per spectator, not once per vertex.
 layout(location = 4) in vec4 aPositionScale;
 layout(location = 5) in vec4 aTintPhase;
 
@@ -32,8 +31,8 @@ void main()
         mat3 rotation = mat3(c, s, 0.0, -s, c, 0.0, 0.0, 0.0, 1.0);
         vec3 position = rotation * aPosition * aPositionScale.w;
         worldPosition = vec4(position + aPositionScale.xyz + vec3(0.0, bounce, 0.0), 1.0);
-        vNormal = normalize(rotation * aNormal); // scale is uniform and positive
-        // Only the white shirt/arms receive the per-instance clothing tint.
+        vNormal = normalize(rotation * aNormal); 
+        
         float clothing = step(0.99, min(aColor.r, min(aColor.g, aColor.b)));
         vColor = aColor * mix(vec3(1.0), aTintPhase.rgb, clothing);
     } else {
