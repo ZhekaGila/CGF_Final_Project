@@ -320,6 +320,63 @@ std::vector<ScenePart> createStageGeometry()
         glm::vec3(0.0f, -1.32f, 5.18f));
 
 
+    const glm::vec3 stairColor(0.11f, 0.12f, 0.15f);
+    const glm::vec3 stairMetal(0.45f, 0.48f, 0.52f);
+
+
+    for (int i = 0; i < 3; i++)
+    {
+        float stepHeight = 0.5f * (i + 1);
+        float stepZ = 7.0f - i * 0.65f;
+
+        addBox(
+            "Stage Stair " + std::to_string(i),
+            glm::vec3(2.0f, stepHeight, 0.65f),
+            stairColor,
+            glm::vec3(5.5f, -1.5f + stepHeight * 0.5f, stepZ)
+        );
+
+        addBox(
+            "Stage Stair Edge " + std::to_string(i),
+            glm::vec3(2.02f, 0.045f, 0.06f),
+            stairMetal,
+            glm::vec3(5.5f, -1.5f + stepHeight, stepZ + 0.30f)
+        );
+    }
+
+    const glm::vec3 railingColor(0.25f, 0.27f, 0.31f);
+
+    for (float x : {4.4f, 6.6f})
+    {
+        addBox(
+            "Stage Stair Front Post",
+            glm::vec3(0.07f, 0.95f, 0.07f),
+            railingColor,
+            glm::vec3(x, -0.525f, 7.0f)
+        );
+
+        addBox(
+            "Stage Stair Back Post",
+            glm::vec3(0.07f, 0.95f, 0.07f),
+            railingColor,
+            glm::vec3(x, 0.475f, 5.65f)
+        );
+
+        addBox(
+            "Stage Stair Handrail",
+            glm::vec3(0.07f, 0.07f, 2.15f),
+            railingColor,
+            glm::vec3(x, 0.0f, 6.325f)
+        );
+
+        parts.back().transform = glm::rotate(
+            parts.back().transform,
+            glm::radians(36.0f),
+            glm::vec3(1.0f, 0.0f, 0.0f)
+        );
+    }
+
+
     addBox("Front Podium",
            glm::vec3(5.0f, 0.3f, 1.5f),
            stageColor,
