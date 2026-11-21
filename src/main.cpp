@@ -499,6 +499,104 @@ void animateCentralSpotlight(
     mesh.model = parentTransform * mesh.originalModel;
 }
 
+void animatePerformer(GpuMesh &mesh, float time)
+{
+    glm::vec3 pivot;
+    float phase;
+
+    if (mesh.name.rfind("Drummer ", 0) == 0)
+    {
+        pivot = glm::vec3(-3.0f, 0.0f, -3.35f);
+        phase = 0.0f;
+    }
+    else if (mesh.name.rfind("Singer ", 0) == 0)
+    {
+        pivot = glm::vec3(0.0f, 0.0f, 1.2f);
+        phase = 1.2f;
+    }
+    else if (mesh.name.rfind("Guitarist ", 0) == 0)
+    {
+        pivot = glm::vec3(3.0f, 0.0f, 0.0f);
+        phase = 2.4f;
+    }
+    else
+    {
+        return;
+    }
+
+    const float bodySway = std::sin(time * 1.8f + phase) * 0.055f;
+    const bool upperBody = mesh.name.find("Torso") != std::string::npos ||
+                           mesh.name.find("Head") != std::string::npos ||
+                           mesh.name.find("Neck") != std::string::npos ||
+                           mesh.name.find("Arm") != std::string::npos ||
+                           mesh.name.find("Elbow") != std::string::npos ||
+                           mesh.name.find("Hand") != std::string::npos;
+    const float bounce = upperBody
+                             ? std::max(0.0f, std::sin(time * 3.6f + phase)) * 0.035f
+                             : 0.0f;
+
+    glm::mat4 motion = glm::translate(glm::mat4(1.0f),
+                                      glm::vec3(0.0f, bounce, 0.0f));
+    motion = glm::translate(motion, pivot);
+    motion = glm::rotate(motion, bodySway, glm::vec3(0.0f, 0.0f, 1.0f));
+    motion = glm::translate(motion, -pivot);
+
+    glm::vec3 armPivot(0.0f);
+    float armSwing = 0.0f;
+    const float beat = time * 7.0f;
+
+    if (mesh.name.rfind("Drummer Left ", 0) == 0 &&
+        (mesh.name.find("Upper Arm") != std::string::npos ||
+         mesh.name.find("Forearm") != std::string::npos ||
+         mesh.name.find("Elbow") != std::string::npos ||
+         mesh.name.find("Hand") != std::string::npos ||
+         mesh.name.find("Drumstick") != std::string::npos))
+    {
+        armPivot = glm::vec3(-3.34f, 1.78f, -3.22f);
+        armSwing = std::sin(beat + phase) * 0.24f;
+    }
+    else if (mesh.name.rfind("Drummer Right ", 0) == 0 &&
+             (mesh.name.find("Upper Arm") != std::string::npos ||
+              mesh.name.find("Forearm") != std::string::npos ||
+              mesh.name.find("Elbow") != std::string::npos ||
+              mesh.name.find("Hand") != std::string::npos ||
+              mesh.name.find("Drumstick") != std::string::npos))
+    {
+        armPivot = glm::vec3(-2.66f, 1.78f, -3.22f);
+        armSwing = std::sin(beat + phase + 1.5f) * 0.24f;
+    }
+    else if (mesh.name.rfind("Singer Left ", 0) == 0 &&
+             (mesh.name.find("Upper Arm") != std::string::npos ||
+              mesh.name.find("Forearm") != std::string::npos ||
+              mesh.name.find("Elbow") != std::string::npos ||
+              mesh.name.find("Hand") != std::string::npos))
+    {
+        armPivot = glm::vec3(-0.27f, 1.78f, 1.36f);
+        armSwing = std::sin(time * 2.2f + phase) * 0.22f;
+    }
+    else if (mesh.name.rfind("Guitarist Right ", 0) == 0 &&
+             (mesh.name.find("Upper Arm") != std::string::npos ||
+              mesh.name.find("Forearm") != std::string::npos ||
+              mesh.name.find("Elbow") != std::string::npos ||
+              mesh.name.find("Hand") != std::string::npos))
+    {
+        armPivot = glm::vec3(2.72f, 1.78f, 0.12f);
+        armSwing = std::sin(beat + phase) * 0.18f;
+    }
+
+    if (armSwing != 0.0f)
+    {
+        glm::mat4 armMotion(1.0f);
+        armMotion = glm::translate(armMotion, armPivot);
+        armMotion = glm::rotate(armMotion, armSwing,
+                                glm::vec3(0.0f, 0.0f, 1.0f));
+        armMotion = glm::translate(armMotion, -armPivot);
+        motion = armMotion * motion;
+    }
+
+    mesh.model = motion * mesh.originalModel;
+}
+
 
 void deleteGpuMeshes(std::vector<GpuMesh> &meshes)
 {
@@ -1433,6 +1531,7 @@ int main()
             }
 
             animateCentralSpotlight(mesh, lights[4].direction);
+            animatePerformer(mesh, time);
         }
 
         int width = 0;
